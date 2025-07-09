@@ -16,9 +16,9 @@ The JSON object must have the following structure:
   "comments": [
     {
       "comment_id": "A unique identifier for the comment",
-      "context_before": "CRITICAL: Extract the 5-10 words immediately PRECEDING the target text. If the target text is at the very beginning of the document, this can be an empty string.",
-      "original_text": "CRITICAL: Extract the exact, verbatim text snippet that this comment refers to. This snippet itself should be the core clause or sentence of concern.",
-      "context_after": "CRITICAL: Extract the 5-10 words immediately FOLLOWING the target text. If the target text is at the very end of the document, this can be an empty string.",
+      "context_before": "CRITICAL FOR POSITIONING: Extract 10-20 words (not just 5-10) immediately PRECEDING the target text. Include punctuation and exact spacing. This must be verbatim text from the document. If the target text is at the very beginning, this can be empty string.",
+      "original_text": "CRITICAL FOR POSITIONING: Extract the exact, verbatim text snippet that this comment refers to. This must be character-perfect match from the document. Include all punctuation, spacing, and capitalization exactly as it appears.",
+      "context_after": "CRITICAL FOR POSITIONING: Extract 10-20 words (not just 5-10) immediately FOLLOWING the target text. Include punctuation and exact spacing. This must be verbatim text from the document. If the target text is at the very end, this can be empty string.",
       "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
       "comment_title": "A short, descriptive title for the issue (5-10 words).",
       "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
@@ -26,6 +26,13 @@ The JSON object must have the following structure:
     }
   ]
 }
+
+CRITICAL POSITIONING REQUIREMENTS:
+1. context_before and context_after must be exact verbatim text from the document
+2. Include at least 10-20 words in context (more is better for unique matching)
+3. Include punctuation, line breaks, and spacing exactly as they appear
+4. The combination of context_before + original_text + context_after should form a unique, findable sequence in the document
+5. Double-check that your extracted text exactly matches the source document
 
 Analyze the following document:`
 
