@@ -1,173 +1,91 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileUpload } from '@/components/file-upload'
-import { TextInput } from '@/components/text-input'
-import { WordLikeEditor } from '@/components/word-like-editor'
-import { convertToWordLikeComment } from '@/types'
-import type { AnalysisResult } from '@/types'
+import { FileText, Scale, Shield, Zap } from 'lucide-react'
+import Link from 'next/link'
 
-export default function Dashboard() {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
-  const [originalText, setOriginalText] = useState<string>('')
-  const [error, setError] = useState<string | null>(null)
-
-  const handleAnalysis = async (text: string) => {
-    if (!text.trim()) {
-      setError('Please provide document text to analyze')
-      return
-    }
-
-    setIsAnalyzing(true)
-    setError(null)
-    setOriginalText(text.trim()) // Store original text
-
-    try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: text.trim() }),
-      })
-
-      const result = await response.json()
-
-      if (result.success && result.data) {
-        setAnalysisResult({
-          ...result.data,
-          original_text: text.trim() // Add original text to result
-        })
-      } else {
-        setError(result.error || 'Failed to analyze document')
-      }
-    } catch (err) {
-      setError('Network error. Please try again.')
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  const handleFileUpload = async (text: string) => {
-    await handleAnalysis(text)
-  }
-
-  const handleTextSubmit = async (text: string) => {
-    await handleAnalysis(text)
-  }
-
+export default function HomePage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            AI Legal Document Review Assistant
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Upload your legal documents or paste text to get AI-powered analysis and recommendations from a Silicon Valley law firm perspective.
-          </p>
-        </div>
-
-        {!analysisResult ? (
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Document</CardTitle>
-                <CardDescription>
-                  Upload a PDF or Word document for analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FileUpload 
-                  onFileProcessed={handleFileUpload}
-                  isProcessing={isAnalyzing}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Paste Text</CardTitle>
-                <CardDescription>
-                  Paste legal document text directly for quick analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TextInput 
-                  onSubmit={handleTextSubmit}
-                  isProcessing={isAnalyzing}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Legal Document Review</h2>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setAnalysisResult(null)
-                  setOriginalText('')
-                }}
-              >
-                Analyze New Document
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <h1 className="text-5xl font-bold text-gray-900 mb-6">
+              AI Legal Assistant
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+              Get instant, founder-focused legal document analysis from a Silicon Valley law firm perspective. 
+              Identify risks, negotiate better terms, and protect your startup.
+            </p>
+            <Link href="/legalDoc">
+              <Button size="lg" className="text-lg px-8 py-3">
+                Start Document Review
+                <FileText className="ml-2 h-5 w-5" />
               </Button>
-            </div>
-            
-            {/* Summary Card */}
-            <Card>
+            </Link>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            <Card className="text-center">
               <CardHeader>
-                <CardTitle>Analysis Summary</CardTitle>
+                <Scale className="h-12 w-12 mx-auto text-blue-600 mb-4" />
+                <CardTitle>Founder-Focused Analysis</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{analysisResult.analysis_summary}</p>
+                <CardDescription>
+                  AI trained to always stand on the founder's side and maximize your benefit in every negotiation.
+                </CardDescription>
               </CardContent>
             </Card>
 
-            {/* Document with Comments */}
-            <Card>
+            <Card className="text-center">
               <CardHeader>
-                <CardTitle>Document Review</CardTitle>
-                <CardDescription>
-                  Click on highlighted text or comment bubbles to view AI recommendations. Comments appear in the right sidebar.
-                </CardDescription>
+                <Shield className="h-12 w-12 mx-auto text-green-600 mb-4" />
+                <CardTitle>Risk Detection</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <WordLikeEditor 
-                  documentText={originalText}
-                  comments={analysisResult.comments.map(comment => convertToWordLikeComment(comment, originalText))}
-                />
+              <CardContent>
+                <CardDescription>
+                  Identify time-sensitive risks and hidden clauses that founders often miss while busy building.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Zap className="h-12 w-12 mx-auto text-purple-600 mb-4" />
+                <CardTitle>Instant Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Get concrete, actionable advice with specific alternative wording and negotiation strategies.
+                </CardDescription>
               </CardContent>
             </Card>
           </div>
-        )}
 
-        {error && (
-          <Card className="mt-6 border-destructive">
-            <CardContent className="pt-6">
-              <div className="text-destructive text-center">
-                {error}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {isAnalyzing && (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">
-                  Analyzing your document... This may take 30-60 seconds.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {/* CTA Section */}
+          <div className="text-center">
+            <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <CardHeader>
+                <CardTitle className="text-2xl">Ready to Review Your Documents?</CardTitle>
+                <CardDescription className="text-blue-100">
+                  Upload PDFs, Word documents, or paste text directly for instant analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/legalDoc">
+                  <Button variant="secondary" size="lg" className="text-lg px-8 py-3">
+                    Get Started Now
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
