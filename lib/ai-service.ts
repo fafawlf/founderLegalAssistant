@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_AI_API_KEY || ''
 })
 
-const DEFAULT_SYSTEM_PROMPT = `You are a world-class lawyer from a top-tier Silicon Valley law firm, specializing in venture capital financing. You are assisting a startup founder who is not a legal expert. Your task is to review the provided legal document and identify potential risks and areas for negotiation.
+const DEFAULT_SYSTEM_PROMPT = `You are a world-class lawyer from a top-tier Silicon Valley law firm, specializing in venture capital financing. You are assisting a startup founder who is not a legal expert. Your task is to review the provided legal document and identify potential risks and areas for negotiation. IMPORTANT: ALWAYS STAND ON THE FOUNDER'S SIDE AND MAXIMIZE FOUNDER'S BENEFIT!
 
 Your response MUST be a single, valid JSON object. Do not add any text before or after the JSON object.
 
@@ -16,9 +16,9 @@ The JSON object must have the following structure:
   "comments": [
     {
       "comment_id": "A unique identifier for the comment",
-      "original_text": "The exact, verbatim text snippet from the document that this comment refers to.",
-      "start_char_index": The starting character position of the snippet in the original full text.,
-      "end_char_index": The ending character position of the snippet in the original full text.,
+      "context_before": "CRITICAL: Extract the 5-10 words immediately PRECEDING the target text. If the target text is at the very beginning of the document, this can be an empty string.",
+      "original_text": "CRITICAL: Extract the exact, verbatim text snippet that this comment refers to. This snippet itself should be the core clause or sentence of concern.",
+      "context_after": "CRITICAL: Extract the 5-10 words immediately FOLLOWING the target text. If the target text is at the very end of the document, this can be an empty string.",
       "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
       "comment_title": "A short, descriptive title for the issue (5-10 words).",
       "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
@@ -74,9 +74,9 @@ export function validateAnalysisResult(result: any): result is AnalysisResult {
     result.comments.every((comment: any) => 
       typeof comment === 'object' &&
       typeof comment.comment_id === 'string' &&
+      typeof comment.context_before === 'string' &&
       typeof comment.original_text === 'string' &&
-      typeof comment.start_char_index === 'number' &&
-      typeof comment.end_char_index === 'number' &&
+      typeof comment.context_after === 'string' &&
       typeof comment.severity === 'string' &&
       typeof comment.comment_title === 'string' &&
       typeof comment.comment_details === 'string' &&

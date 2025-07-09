@@ -5,12 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/file-upload'
 import { TextInput } from '@/components/text-input'
-import { AnalysisResults } from '@/components/analysis-results'
+import { WordLikeEditor } from '@/components/word-like-editor'
+import { convertToWordLikeComment } from '@/types'
 import type { AnalysisResult } from '@/types'
 
 export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [originalText, setOriginalText] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
   const handleAnalysis = async (text: string) => {
@@ -21,6 +23,7 @@ export default function Dashboard() {
 
     setIsAnalyzing(true)
     setError(null)
+    setOriginalText(text.trim()) // Store original text
 
     try {
       const response = await fetch('/api/analyze', {
@@ -34,7 +37,10 @@ export default function Dashboard() {
       const result = await response.json()
 
       if (result.success && result.data) {
-        setAnalysisResult(result.data)
+        setAnalysisResult({
+          ...result.data,
+          original_text: text.trim() // Add original text to result
+        })
       } else {
         setError(result.error || 'Failed to analyze document')
       }
@@ -100,16 +106,43 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Analysis Results</h2>
+              <h2 className="text-2xl font-semibold">Legal Document Review</h2>
               <Button 
                 variant="outline" 
-                onClick={() => setAnalysisResult(null)}
+                onClick={() => {
+                  setAnalysisResult(null)
+                  setOriginalText('')
+                }}
               >
                 Analyze New Document
               </Button>
             </div>
             
-            <AnalysisResults result={analysisResult} />
+            {/* Summary Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Analysis Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{analysisResult.analysis_summary}</p>
+              </CardContent>
+            </Card>
+
+            {/* Document with Comments */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Document Review</CardTitle>
+                <CardDescription>
+                  Click on highlighted text or comment bubbles to view AI recommendations. Comments appear in the right sidebar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <WordLikeEditor 
+                  documentText={originalText}
+                  comments={analysisResult.comments.map(comment => convertToWordLikeComment(comment, originalText))}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
 
