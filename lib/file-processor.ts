@@ -9,16 +9,23 @@ export async function processFile(file: File): Promise<FileUploadResponse> {
     }
 
     const fileType = file.type
+    console.log('Processing file type:', fileType)
     let text = ''
 
     if (fileType === 'application/pdf') {
+      console.log('Processing as PDF')
       text = await processPDF(file)
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                fileType === 'application/msword') {
+      console.log('Processing as Word document')
       text = await processDOCX(file)
     } else {
+      console.log('Unsupported file type:', fileType)
       return { success: false, error: 'Unsupported file type. Please upload a PDF or Word document.' }
     }
+
+    console.log('Extracted text length:', text.length)
+    console.log('Text preview:', text.substring(0, 200))
 
     if (!text || text.trim().length === 0) {
       return { success: false, error: 'Could not extract text from the file. Please ensure the file contains readable text.' }
@@ -45,8 +52,21 @@ async function processPDF(file: File): Promise<string> {
 
 async function processDOCX(file: File): Promise<string> {
   try {
+    console.log('Starting DOCX processing...')
     const arrayBuffer = await file.arrayBuffer()
-    const result = await mammoth.extractRawText({ arrayBuffer })
+    console.log('ArrayBuffer size:', arrayBuffer.byteLength)
+    
+    // Convert ArrayBuffer to Buffer for mammoth
+    const buffer = Buffer.from(arrayBuffer)
+    console.log('Buffer size:', buffer.length)
+    
+    const result = await mammoth.extractRawText({ buffer })
+    console.log('Mammoth result:', {
+      textLength: result.value.length,
+      hasMessages: result.messages.length > 0,
+      messages: result.messages
+    })
+    
     return result.value
   } catch (error) {
     console.error('Error processing DOCX:', error)
