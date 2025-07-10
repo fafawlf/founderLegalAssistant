@@ -119,16 +119,15 @@ export function ChatWindow({ documentText, isOpen, onToggle }: ChatWindowProps) 
         <Button
           onClick={onToggle}
           size="lg"
-          className="rounded-full h-14 w-14 shadow-lg hover:shadow-xl transition-shadow p-0"
+          className="rounded-full h-14 w-14 shadow-lg hover:shadow-xl transition-shadow p-0 overflow-hidden"
         >
           {/* Try to load custom chat icon, fallback to MessageCircle */}
-          <div className="relative w-8 h-8 flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center">
             <Image
               src="/chat-icon.jpeg"
               alt="Chat"
-              width={32}
-              height={32}
-              className="object-contain"
+              fill
+              className="object-cover rounded-full"
               onError={(e) => {
                 // Hide the image and show fallback icon on error
                 e.currentTarget.style.display = 'none'
@@ -179,20 +178,19 @@ export function ChatWindow({ documentText, isOpen, onToggle }: ChatWindowProps) 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
-                  <div className="relative w-12 h-12 mx-auto mb-4">
+                  <div className="relative w-12 h-12 mx-auto mb-4 rounded-full overflow-hidden">
                     <Image
                       src="/chat-icon.jpeg"
                       alt="Chat"
-                      width={48}
-                      height={48}
-                      className="object-contain opacity-50"
+                      fill
+                      className="object-cover opacity-50"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                         const fallback = e.currentTarget.nextElementSibling as HTMLElement
                         if (fallback) fallback.style.display = 'block'
                       }}
                     />
-                    <MessageCircle className="h-12 w-12 opacity-50 hidden" />
+                    <MessageCircle className="h-12 w-12 opacity-50 hidden absolute inset-0" />
                   </div>
                   <p className="text-sm">
                     Ask me anything about your legal document!
