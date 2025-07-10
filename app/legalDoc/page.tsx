@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FileUpload } from '@/components/file-upload'
 import { TextInput } from '@/components/text-input'
 import { WordLikeEditor } from '@/components/word-like-editor'
+import { ChatWindow } from '@/components/chat-window'
 import { convertToWordLikeComment } from '@/types'
 import type { AnalysisResult } from '@/types'
 import Link from 'next/link'
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [originalText, setOriginalText] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
   const handleAnalysis = async (text: string) => {
     if (!text.trim()) {
@@ -59,6 +61,10 @@ export default function Dashboard() {
 
   const handleTextSubmit = async (text: string) => {
     await handleAnalysis(text)
+  }
+
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen)
   }
 
   return (
@@ -146,6 +152,7 @@ export default function Dashboard() {
                 <CardTitle>Document Review</CardTitle>
                 <CardDescription>
                   Click on highlighted text or comment bubbles to view AI recommendations. Comments appear in the right sidebar.
+                  You can also use the chat feature to ask specific questions about the document.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -179,6 +186,15 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Chat Window - Only show if we have document text */}
+        {originalText && (
+          <ChatWindow 
+            documentText={originalText}
+            isOpen={isChatOpen}
+            onToggle={toggleChat}
+          />
         )}
       </div>
     </div>
