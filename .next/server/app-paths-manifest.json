@@ -1,1 +1,6 @@
-{}
+{
+  "/legalDoc/page": "app/legalDoc/page.js",
+  "/api/upload/route": "app/api/upload/route.js",
+  "/api/analyze/route": "app/api/analyze/route.js",
+  "/api/chat/route": "app/api/chat/route.js"
+}
