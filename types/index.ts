@@ -19,6 +19,16 @@ export interface Comment {
   severity: 'low' | 'medium' | 'high'
 }
 
+// Word document comment interface
+export interface WordComment {
+  id: string
+  text: string
+  author: string
+  date: string
+  position: { start: number; end: number }
+  type: 'word-comment'
+}
+
 export interface AnalysisResult {
   document_id: string
   analysis_summary: string
@@ -30,6 +40,7 @@ export interface FileUploadResponse {
   success: boolean
   text?: string
   error?: string
+  wordComments?: WordComment[]
 }
 
 export interface AnalysisRequest {

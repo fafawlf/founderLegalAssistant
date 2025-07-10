@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Send, FileText, Sparkles, Check } from 'lucide-react'
 
 interface TextInputProps {
-  onSubmit: (text: string) => void
+  onSubmit: (text: string, wordComments?: import('@/types').WordComment[]) => void
   isProcessing: boolean
-  onStartAnalysis?: (text?: string) => void // Add callback for automatic analysis
+  onStartAnalysis?: (text?: string) => void
 }
 
 export function TextInput({ onSubmit, isProcessing, onStartAnalysis }: TextInputProps) {
@@ -17,14 +17,14 @@ export function TextInput({ onSubmit, isProcessing, onStartAnalysis }: TextInput
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (text.trim()) {
-      onSubmit(text.trim())
+      onSubmit(text.trim()) // Text input doesn't have Word comments, so don't pass any
       setIsSubmitted(true)
       
-      // Automatically start analysis after text submission
+      // Trigger automatic analysis
       if (onStartAnalysis) {
         setTimeout(() => {
           onStartAnalysis(text.trim())
-        }, 500) // Small delay to show success state
+        }, 1000)
       }
     }
   }

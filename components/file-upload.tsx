@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { validateFileType, validateFileSize } from '@/lib/utils'
 
 interface FileUploadProps {
-  onFileProcessed: (text: string) => void
+  onFileProcessed: (text: string, wordComments?: import('@/types').WordComment[]) => void
   isProcessing: boolean
   onStartAnalysis?: (text?: string) => void
 }
@@ -49,7 +49,7 @@ export function FileUpload({ onFileProcessed, isProcessing, onStartAnalysis }: F
 
       if (result.success && result.data?.text) {
         setUploadStatus('success')
-        onFileProcessed(result.data.text)
+        onFileProcessed(result.data.text, result.data.wordComments)
         
         if (onStartAnalysis) {
           setTimeout(() => {

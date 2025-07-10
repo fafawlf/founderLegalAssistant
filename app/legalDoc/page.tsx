@@ -9,15 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, MessageSquare, Upload, Type, ArrowLeft, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { convertToWordLikeComment, type LegalComment } from '@/types'
+import { convertToWordLikeComment, type LegalComment, type WordComment } from '@/types'
 
 export default function LegalDocPage() {
   const [documentText, setDocumentText] = useState('')
   const [analysisResults, setAnalysisResults] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [wordComments, setWordComments] = useState<WordComment[]>([])
 
-  const handleDocumentUpload = (text: string) => {
+  const handleDocumentUpload = (text: string, wordComments?: WordComment[]) => {
     setDocumentText(text)
+    setWordComments(wordComments || [])
   }
 
   const handleAnalysis = async (textToAnalyze?: string) => {
@@ -286,7 +288,8 @@ export default function LegalDocPage() {
                         </span>
                       </span>
                     )}
-                    {analysisResults && ` • Found ${analysisResults.comments?.length || 0} comments`}
+                    {analysisResults && ` • Found ${analysisResults.comments?.length || 0} AI comments`}
+                    {wordComments.length > 0 && ` • ${wordComments.length} Word comments`}
                   </p>
                 </div>
               </div>
@@ -323,7 +326,19 @@ export default function LegalDocPage() {
             <div className="transform-style-3d">
               <WordLikeEditor 
                 documentText={documentText}
-                comments={analysisResults?.comments ? analysisResults.comments.map((comment: LegalComment) => convertToWordLikeComment(comment, documentText)) : []}
+                comments={[
+                  // AI comments
+                  ...(analysisResults?.comments ? analysisResults.comments.map((comment: LegalComment) => convertToWordLikeComment(comment, documentText)) : []),
+                  // Word comments
+                  ...wordComments.map((comment: WordComment) => ({
+                    id: comment.id,
+                    text: `📝 ${comment.text}\n\nAuthor: ${comment.author}\nDate: ${new Date(comment.date).toLocaleDateString()}`,
+                    author: comment.author,
+                    start: comment.position.start,
+                    end: comment.position.end,
+                    severity: 'low' as const
+                  }))
+                ]}
               />
             </div>
           </div>
