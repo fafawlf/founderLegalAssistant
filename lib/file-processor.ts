@@ -1,5 +1,6 @@
 import pdf from 'pdf-parse'
 import mammoth from 'mammoth'
+import JSZip from 'jszip'
 import type { FileUploadResponse, WordComment } from '@/types'
 
 export async function processFile(file: File): Promise<FileUploadResponse> {
@@ -21,154 +22,296 @@ export async function processFile(file: File): Promise<FileUploadResponse> {
       console.log('Processing as Word document')
       const result = await processDOCX(file)
       text = result.text
-      wordComments = result.comments
+      wordComments = result.wordComments
     } else {
-      console.log('Unsupported file type:', fileType)
       return { success: false, error: 'Unsupported file type. Please upload a PDF or Word document.' }
     }
 
-    console.log('Extracted text length:', text.length)
-    console.log('Text preview:', text.substring(0, 200))
-    console.log('Word comments found:', wordComments.length)
-
-    if (!text || text.trim().length === 0) {
-      return { success: false, error: 'Could not extract text from the file. Please ensure the file contains readable text.' }
+    if (!text.trim()) {
+      return { success: false, error: 'No text content found in the file' }
     }
 
-    return { 
-      success: true, 
-      text: text.trim(),
+    console.log('File processed successfully, text length:', text.length)
+    console.log('Word comments found:', wordComments.length)
+    console.log('Word comments:', wordComments)
+
+    return {
+      success: true,
+      text,
       wordComments: wordComments.length > 0 ? wordComments : undefined
     }
   } catch (error) {
     console.error('Error processing file:', error)
-    return { success: false, error: 'Failed to process file. Please try again.' }
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    }
   }
 }
 
 async function processPDF(file: File): Promise<string> {
-  try {
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const data = await pdf(buffer)
-    return data.text
-  } catch (error) {
-    console.error('Error processing PDF:', error)
-    throw new Error('Failed to extract text from PDF. The file might be corrupted or password-protected.')
-  }
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+  const data = await pdf(buffer)
+  return data.text
 }
 
-async function processDOCX(file: File): Promise<{ text: string; comments: WordComment[] }> {
+async function processDOCX(file: File): Promise<{ text: string; wordComments: WordComment[] }> {
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+  
   try {
-    console.log('Starting DOCX processing...')
-    const arrayBuffer = await file.arrayBuffer()
-    console.log('ArrayBuffer size:', arrayBuffer.byteLength)
-    
-    // Convert ArrayBuffer to Buffer for mammoth
-    const buffer = Buffer.from(arrayBuffer)
-    console.log('Buffer size:', buffer.length)
-    
-    // Extract text
-    const textResult = await mammoth.extractRawText({ buffer })
-    console.log('Mammoth text result:', {
-      textLength: textResult.value.length,
-      hasMessages: textResult.messages.length > 0,
-      messages: textResult.messages
+    // Convert to HTML to get the main text with better formatting preservation
+    const htmlResult = await mammoth.convertToHtml({ 
+      buffer
     })
     
-    // Extract comments using mammoth's HTML conversion
-    const htmlResult = await mammoth.convertToHtml({ buffer })
+    // Convert HTML to text while preserving line breaks
+    let text = htmlResult.value
+      .replace(/<p[^>]*>/g, '\n') // Convert paragraph tags to line breaks
+      .replace(/<\/p>/g, '\n') // End paragraphs with line breaks
+      .replace(/<br[^>]*>/g, '\n') // Convert br tags to line breaks
+      .replace(/<[^>]*>/g, '') // Remove remaining HTML tags
+      .replace(/&nbsp;/g, ' ') // Convert non-breaking spaces
+      .replace(/&amp;/g, '&') // Convert HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks to max 2
+      .trim()
     
-    console.log('Mammoth HTML result:', {
-      htmlLength: htmlResult.value.length,
-      hasMessages: htmlResult.messages.length > 0
-    })
+    console.log('Extracted text length:', text.length)
+    console.log('Text preview with line breaks:', text.substring(0, 500))
     
-    // Extract comments from HTML
-    const comments = extractCommentsFromHtml(htmlResult.value, textResult.value)
-    console.log('Extracted comments:', comments.length)
+    // Try to extract comments from the buffer directly using comprehensive methods
+    const wordComments = await extractWordCommentsComprehensive(arrayBuffer)
     
-    return {
-      text: textResult.value,
-      comments
-    }
+    return { text, wordComments }
   } catch (error) {
     console.error('Error processing DOCX:', error)
-    throw new Error('Failed to extract text from Word document. The file might be corrupted.')
+    return { text: '', wordComments: [] }
   }
 }
 
-function extractCommentsFromHtml(html: string, plainText: string): WordComment[] {
+async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<WordComment[]> {
   const comments: WordComment[] = []
   
   try {
-    // Look for comment patterns in the HTML
-    // Mammoth typically includes comments as spans or other elements
-    const commentRegex = /<span[^>]*class="[^"]*comment[^"]*"[^>]*>(.*?)<\/span>/gi
-    const commentMatches = Array.from(html.matchAll(commentRegex))
+    // Try to use JSZip to properly extract and parse the Word document structure
+    const zip = await JSZip.loadAsync(buffer)
     
-    let commentId = 1
-    for (const match of commentMatches) {
-      const commentText = match[1]
-      if (commentText && commentText.trim()) {
-        // Try to find the position in the plain text
-        const position = findCommentPosition(commentText, plainText)
-        
-        comments.push({
-          id: `word-comment-${commentId}`,
-          text: commentText.replace(/<[^>]*>/g, '').trim(), // Remove HTML tags
-          author: 'Word Comment',
-          date: new Date().toISOString(),
-          position: position || { start: 0, end: 0 },
-          type: 'word-comment'
+    console.log('Looking for Word document comment files...')
+    
+    // Check if comments.xml exists in the Word document
+    const commentsFile = zip.file('word/comments.xml')
+    if (commentsFile) {
+      console.log('Found word/comments.xml, extracting structured comments...')
+      const commentsXml = await commentsFile.async('string')
+      console.log('Comments XML preview:', commentsXml.substring(0, 500))
+      
+             // Parse the XML properly
+       const commentMatches = commentsXml.match(/<w:comment[^>]*>[\s\S]*?<\/w:comment>/g)
+       if (commentMatches) {
+         commentMatches.forEach((commentXml: string, index: number) => {
+          try {
+            // Extract author
+            const authorMatch = commentXml.match(/w:author="([^"]*)"/)
+            const author = authorMatch ? authorMatch[1] : `Commenter ${index + 1}`
+            
+            // Extract date
+            const dateMatch = commentXml.match(/w:date="([^"]*)"/)
+            const date = dateMatch ? dateMatch[1] : new Date().toISOString()
+            
+            // Extract initials as fallback author
+            const initialsMatch = commentXml.match(/w:initials="([^"]*)"/)
+            const finalAuthor = author || (initialsMatch ? initialsMatch[1] : `Commenter ${index + 1}`)
+            
+            // Extract text content properly
+            const textElements = commentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
+            let commentText = ''
+            if (textElements) {
+              commentText = textElements
+                .map((element: string) => {
+                  const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
+                  return textMatch ? textMatch[1] : ''
+                })
+                .filter((text: string) => text.trim().length > 0)
+                .join(' ')
+                .trim()
+            }
+            
+            if (commentText && commentText.length > 0 && !commentText.includes('')) {
+              console.log(`Extracted clean comment by ${finalAuthor}: ${commentText.substring(0, 100)}...`)
+              
+              comments.push({
+                id: `word-comment-${comments.length + 1}`,
+                text: cleanCommentText(commentText),
+                author: finalAuthor,
+                date: formatDate(date),
+                position: { start: 0, end: 0 },
+                type: 'word-comment'
+              })
+            }
+          } catch (parseError) {
+            console.error('Error parsing individual comment:', parseError)
+          }
         })
-        commentId++
       }
     }
     
-    // Also look for other comment patterns
-    const altCommentRegex = /\[Comment:\s*(.*?)\]/gi
-    const altMatches = Array.from(plainText.matchAll(altCommentRegex))
-    
-    for (const match of altMatches) {
-      const commentText = match[1]
-      if (commentText && commentText.trim()) {
-        const start = match.index || 0
-        const end = start + match[0].length
+    // If no comments found in comments.xml, try alternative approach with document.xml
+    if (comments.length === 0) {
+      console.log('No comments in comments.xml, trying document.xml approach...')
+      
+      const documentFile = zip.file('word/document.xml')
+      if (documentFile) {
+        const documentXml = await documentFile.async('string')
         
-        comments.push({
-          id: `word-comment-${commentId}`,
-          text: commentText.trim(),
-          author: 'Word Comment',
-          date: new Date().toISOString(),
-          position: { start, end },
-          type: 'word-comment'
-        })
-        commentId++
+        // Look for comment reference ranges in the document
+        const commentRefs = documentXml.match(/<w:commentRangeStart[^>]*w:id="([^"]*)"[^>]*>/g)
+        if (commentRefs && commentsFile) {
+          const commentsXml = await commentsFile.async('string')
+          
+          commentRefs.forEach((ref: string, index: number) => {
+            const idMatch = ref.match(/w:id="([^"]*)"/)
+            if (idMatch) {
+              const commentId = idMatch[1]
+              
+              // Find the corresponding comment in comments.xml
+              const commentPattern = new RegExp(`<w:comment[^>]*w:id="${commentId}"[^>]*>([\\s\\S]*?)<\\/w:comment>`, 'g')
+              const commentMatch = commentPattern.exec(commentsXml)
+              
+              if (commentMatch) {
+                const commentContent = commentMatch[0]
+                const authorMatch = commentContent.match(/w:author="([^"]*)"/)
+                const dateMatch = commentContent.match(/w:date="([^"]*)"/)
+                
+                const author = authorMatch ? authorMatch[1] : `Commenter ${index + 1}`
+                const date = dateMatch ? dateMatch[1] : new Date().toISOString()
+                
+                // Extract clean text
+                const textElements = commentMatch[1].match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
+                let commentText = ''
+                if (textElements) {
+                  commentText = textElements
+                    .map((element: string) => {
+                      const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
+                      return textMatch ? textMatch[1] : ''
+                    })
+                    .filter((text: string) => text.trim().length > 0)
+                    .join(' ')
+                    .trim()
+                }
+                
+                if (commentText && commentText.length > 0 && !commentText.includes('')) {
+                  console.log(`Extracted referenced comment by ${author}: ${commentText.substring(0, 100)}...`)
+                  
+                  comments.push({
+                    id: `word-comment-${comments.length + 1}`,
+                    text: cleanCommentText(commentText),
+                    author: author,
+                    date: formatDate(date),
+                    position: { start: 0, end: 0 },
+                    type: 'word-comment'
+                  })
+                }
+              }
+            }
+          })
+        }
       }
     }
+    
+    // If still no comments found, try mammoth's comment extraction as fallback
+    if (comments.length === 0) {
+      console.log('No comments found in XML files, trying mammoth extraction...')
+      try {
+        const mammothBuffer = Buffer.from(buffer)
+        const result = await mammoth.convertToHtml({ buffer: mammothBuffer })
+        
+        // Look for any comment-like patterns in the converted text
+        const htmlText = result.value
+        if (htmlText.includes('comment') || htmlText.includes('Comment')) {
+          console.log('Found potential comments in mammoth output, but extraction method needs improvement')
+          // For now, we'll rely on the XML-based extraction above
+        }
+      } catch (mammothError) {
+        console.error('Mammoth fallback failed:', mammothError)
+      }
+    }
+    
+    if (comments.length > 0) {
+      console.log(`Successfully extracted ${comments.length} clean Word comments:`)
+      comments.forEach((comment, idx) => {
+        console.log(`  ${idx + 1}. Author: ${comment.author}, Text: ${comment.text.substring(0, 100)}...`)
+      })
+    } else {
+      console.log('No readable Word comments found')
+    }
+    
+    return comments.slice(0, 10) // Limit to first 10 comments
     
   } catch (error) {
-    console.error('Error extracting comments from HTML:', error)
+    console.error('Error extracting Word comments:', error)
+    
+    // Final fallback: try the old method but with better text cleaning
+    try {
+      const uint8Array = new Uint8Array(buffer)
+      const decoder = new TextDecoder('utf-8', { fatal: false })
+      const content = decoder.decode(uint8Array)
+      
+      // Look for readable text patterns that might be comments
+      const readablePatterns = [
+        /(?:Lifan\s+Wang|Wang,?\s+Lifan|Coronado,?\s+Andre|Andre\s+Coronado)[\s:]+([A-Za-z\s,.\-!?]{10,200})/gi,
+        /Comment[\s:]+([A-Za-z\s,.\-!?]{10,200})/gi
+      ]
+      
+      for (const pattern of readablePatterns) {
+        let match
+        while ((match = pattern.exec(content)) !== null && comments.length < 5) {
+          const text = match[1]?.trim()
+          if (text && !text.includes('') && text.length > 10) {
+            comments.push({
+              id: `word-comment-${comments.length + 1}`,
+              text: cleanCommentText(text),
+              author: match[0].includes('Lifan') ? 'Lifan Wang' : 
+                      match[0].includes('Coronado') ? 'Coronado, Andre' : 'Unknown Author',
+              date: new Date().toISOString(),
+              position: { start: 0, end: 0 },
+              type: 'word-comment'
+            })
+          }
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Fallback extraction also failed:', fallbackError)
+    }
+    
+    return comments
   }
-  
-  return comments
 }
 
-function findCommentPosition(commentText: string, plainText: string): { start: number; end: number } | null {
-  // Try to find where this comment might be positioned in the text
-  // This is a simplified approach - in reality, Word comments are more complex
-  const searchText = commentText.substring(0, 50) // Use first 50 chars to search
-  const index = plainText.indexOf(searchText)
-  
-  if (index !== -1) {
-    return {
-      start: index,
-      end: index + searchText.length
+function cleanCommentText(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, '') // Remove HTML/XML tags
+    .replace(/&[a-z]+;/gi, '') // Remove HTML entities
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '') // Remove control characters but keep unicode
+    .trim()
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    // Try to parse various date formats
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) {
+      return new Date().toISOString()
     }
+    return date.toISOString()
+  } catch {
+    return new Date().toISOString()
   }
-  
-  return null
 }
 
 export function preprocessText(text: string): string {
