@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,8 +25,13 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [inputRows, setInputRows] = useState(1)
+  const [mounted, setMounted] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -109,9 +115,21 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  if (!mounted) {
+    return null
+  }
+
   if (!isOpen) {
-    return (
-      <div className="fixed bottom-6 right-6 z-50 perspective-1000">
+    return createPortal(
+      <div 
+        className="fixed bottom-6 right-6 perspective-1000"
+        style={{ 
+          zIndex: 2147483647,
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px'
+        }}
+      >
         <Button
           onClick={() => setIsOpen(true)}
           className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-2xl transform-style-3d transition-all duration-300 hover:scale-110 animate-float group"
@@ -147,12 +165,21 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
           <div className="absolute -top-2 -right-2 w-3 h-3 bg-green-400 rounded-full animate-bounce opacity-80" />
           <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-purple-400 rounded-full animate-ping opacity-60" />
         </Button>
-      </div>
+      </div>,
+      document.body
     )
   }
 
-  return (
-    <div className="fixed bottom-6 right-6 z-50 perspective-1500">
+  return createPortal(
+    <div 
+      className="fixed bottom-6 right-6 perspective-1500"
+      style={{ 
+        zIndex: 2147483647,
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px'
+      }}
+    >
       <Card 
         className={`bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl transform-style-3d transition-all duration-500 ${
           isMinimized ? 'w-80 h-16' : 'w-96 h-[32rem]'
@@ -349,6 +376,7 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
         {/* 3D Glow Effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 } 
