@@ -14,7 +14,7 @@ function getSeverityColor(severity: Comment['severity']) {
   return { bg: 'bg-blue-50', border: 'border-blue-500', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800' }
 }
 
-function parseCommentText(text: string | undefined) {
+function parseCommentText(text: string | undefined, author?: string) {
   if (!text) return { title: 'No title', issue: 'No issue description', recommendation: 'No recommendation', marketStandard: null, isWordComment: false }
   
   // Ensure text is a string
@@ -31,9 +31,9 @@ function parseCommentText(text: string | undefined) {
     const date = dateLine ? dateLine.replace('Date: ', '') : 'Unknown'
     
     return {
-      title,
-      issue: content || 'No content',
-      recommendation: `Comment by ${author} on ${date}`,
+      title: `Comment by ${author}`,
+      issue: content || title || 'No content',
+      recommendation: `Date: ${date}`,
       marketStandard: null,
       isWordComment: true
     }
@@ -41,10 +41,12 @@ function parseCommentText(text: string | undefined) {
   
   // Check if this looks like a simple Word comment (just the text without formatting)
   // Word comments from our processor are usually just plain text
-  if (!textStr.includes('\n\n') && textStr.length < 200) {
+  if (!textStr.includes('\n\n') && textStr.length < 500) {
+    // For simple Word comments, we might have author info passed separately
+    const commentAuthor = author || 'Unknown Author'
     return {
-      title: textStr.length > 50 ? textStr.substring(0, 50) + '...' : textStr,
-      issue: textStr,
+      title: `Comment by ${commentAuthor}`,
+      issue: textStr, // Show the full comment text in the content
       recommendation: 'Original comment from Word document',
       marketStandard: null,
       isWordComment: true
@@ -237,7 +239,10 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
             const colors = getSeverityColor(comment.severity)
             const isExpanded = expandedComments.has(comment.id)
             const position = commentPositions[comment.id] || (index * 180)
-            const { title, issue, recommendation, marketStandard, isWordComment } = parseCommentText(comment.text)
+            
+            // Extract author information for Word comments
+            const commentAuthor = comment.author || 'Unknown Author'
+            const { title, issue, recommendation, marketStandard, isWordComment } = parseCommentText(comment.text, commentAuthor)
             
             return (
               <div
@@ -292,45 +297,64 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
                     isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                   }`}>
-                    <div className="text-sm text-gray-900 dark:text-gray-50 space-y-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                      <div>
-                        <span className="font-bold text-gray-900 dark:text-white">
-                          {isWordComment ? 'Content:' : 'Issue:'}
-                        </span>
-                        <p className="mt-1 text-gray-900 dark:text-gray-50 leading-relaxed whitespace-pre-wrap">{issue}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-gray-900 dark:text-white">
-                          {isWordComment ? 'Details:' : 'Recommendation:'}
-                        </span>
-                        <p className="mt-1 text-gray-900 dark:text-gray-50 leading-relaxed whitespace-pre-wrap">{recommendation}</p>
-                      </div>
-                      {marketStandard && !isWordComment && (
-                        <div>
-                          <span className="font-bold text-gray-900 dark:text-white">Market Standard:</span>
-                          <div className="mt-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-                                marketStandard.isStandard === 'Yes' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                  : marketStandard.isStandard === 'No'
-                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                              }`}>
-                                {marketStandard.isStandard}
-                              </span>
+                    <div className="max-h-80 overflow-y-auto pr-2 scrollbar-w-2 scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500 scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
+                      {isWordComment ? (
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Comment:</div>
+                            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                              {issue}
                             </div>
-                            <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
-                              {marketStandard.reasoning}
-                            </p>
                           </div>
                         </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div>
+                            <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">Issue:</div>
+                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                              {issue}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">Recommendation:</div>
+                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                              {recommendation}
+                            </div>
+                          </div>
+                          
+                          {marketStandard && (
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="text-xs font-medium text-purple-700 dark:text-purple-300">Market Standard:</div>
+                                <Badge 
+                                  variant={
+                                    marketStandard.isStandard === 'Yes' ? 'default' : 
+                                    marketStandard.isStandard === 'No' ? 'destructive' : 'secondary'
+                                  } 
+                                  className={`text-xs font-medium px-2 py-1 ${
+                                    marketStandard.isStandard === 'Yes' 
+                                      ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700' 
+                                      : marketStandard.isStandard === 'No' 
+                                      ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
+                                      : 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700'
+                                  }`}
+                                >
+                                  {marketStandard.isStandard}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                                {marketStandard.reasoning}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
-                      <div className="text-xs text-gray-700 dark:text-gray-200 p-3 bg-gray-200/80 dark:bg-gray-600/80 rounded-lg border border-gray-300/50 dark:border-gray-500/50">
-                        <span className="font-semibold text-gray-800 dark:text-gray-100">Referenced text:</span> 
-                        <span className="text-gray-800 dark:text-gray-100 break-words ml-1">"{documentText.slice(comment.start, comment.end)}"</span>
-                      </div>
                     </div>
+                  </div>
+                  <div className="text-xs text-gray-700 dark:text-gray-200 p-3 bg-gray-200/80 dark:bg-gray-600/80 rounded-lg border border-gray-300/50 dark:border-gray-500/50">
+                    <span className="font-semibold text-gray-800 dark:text-gray-100">Referenced text:</span> 
+                    <span className="text-gray-800 dark:text-gray-100 break-words ml-1">"{documentText.slice(comment.start, comment.end)}"</span>
                   </div>
                 </div>
               </div>

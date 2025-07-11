@@ -98,159 +98,248 @@ async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<Wo
   const comments: WordComment[] = []
   
   try {
-    // Try to use JSZip to properly extract and parse the Word document structure
     const zip = await JSZip.loadAsync(buffer)
+    console.log('Extracting Word comments with position information...')
     
-    console.log('Looking for Word document comment files...')
-    
-    // Check if comments.xml exists in the Word document
+    // Get both document.xml and comments.xml
+    const documentFile = zip.file('word/document.xml')
     const commentsFile = zip.file('word/comments.xml')
-    if (commentsFile) {
-      console.log('Found word/comments.xml, extracting structured comments...')
-      const commentsXml = await commentsFile.async('string')
-      console.log('Comments XML length:', commentsXml.length)
+    
+    if (!documentFile || !commentsFile) {
+      console.log('Missing required Word document files for comment extraction')
+      return comments
+    }
+    
+    const documentXml = await documentFile.async('string')
+    const commentsXml = await commentsFile.async('string')
+    
+    console.log('Document XML length:', documentXml.length)
+    console.log('Comments XML length:', commentsXml.length)
+    
+    // Extract all comments from comments.xml first
+    const commentData: Record<string, { text: string; author: string; date: string }> = {}
+    
+    const commentMatches = commentsXml.match(/<w:comment[^>]*>[\s\S]*?<\/w:comment>/g)
+    if (commentMatches) {
+      console.log(`Found ${commentMatches.length} comment definitions`)
       
-      // Parse the XML more carefully to avoid corrupted text
-      const commentMatches = commentsXml.match(/<w:comment[^>]*>[\s\S]*?<\/w:comment>/g)
-      if (commentMatches) {
-        console.log(`Found ${commentMatches.length} comment elements`)
-        
-        commentMatches.forEach((commentXml: string, index: number) => {
-          try {
-            // Extract author
-            const authorMatch = commentXml.match(/w:author="([^"]*)"/)
-            let author = authorMatch ? authorMatch[1] : ''
-            
-            // Extract initials as fallback
-            const initialsMatch = commentXml.match(/w:initials="([^"]*)"/)
-            if (!author && initialsMatch) {
-              author = initialsMatch[1]
-            }
-            
-            // Extract date
-            const dateMatch = commentXml.match(/w:date="([^"]*)"/)
-            const date = dateMatch ? dateMatch[1] : new Date().toISOString()
-            
-            // Extract text content more carefully
-            const textElements = commentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
-            let commentText = ''
-            
-            if (textElements) {
-              const textParts = textElements
-                .map((element: string) => {
-                  const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
-                  return textMatch ? textMatch[1] : ''
-                })
-                .filter((text: string) => text.trim().length > 0)
-              
-              commentText = textParts.join(' ').trim()
-            }
-            
-            // Only add comments with valid, readable text
-            if (commentText && 
-                commentText.length > 0 && 
-                commentText.length < 1000 && // Reasonable length limit
-                !containsCorruptedText(commentText) &&
-                isReadableText(commentText)) {
-              
-              console.log(`Adding clean comment by ${author || 'Unknown'}: ${commentText.substring(0, 100)}...`)
-              
-              comments.push({
-                id: `word-comment-${comments.length + 1}`,
-                text: cleanCommentText(commentText),
-                author: author || `Commenter ${index + 1}`,
-                date: formatDate(date),
-                position: { start: 0, end: 0 },
-                type: 'word-comment'
+      commentMatches.forEach((commentXml: string) => {
+        try {
+          // Extract comment ID
+          const idMatch = commentXml.match(/w:id="([^"]*)"/)
+          if (!idMatch) return
+          
+          const commentId = idMatch[1]
+          
+          // Extract author
+          const authorMatch = commentXml.match(/w:author="([^"]*)"/)
+          const author = authorMatch ? authorMatch[1] : 'Unknown'
+          
+          // Extract date
+          const dateMatch = commentXml.match(/w:date="([^"]*)"/)
+          const date = dateMatch ? dateMatch[1] : new Date().toISOString()
+          
+          // Extract text content
+          const textElements = commentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
+          let commentText = ''
+          
+          if (textElements) {
+            const textParts = textElements
+              .map((element: string) => {
+                const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
+                return textMatch ? textMatch[1] : ''
               })
-            } else {
-              console.log(`Skipping corrupted/invalid comment: ${commentText.substring(0, 50)}...`)
-            }
-          } catch (parseError) {
-            console.error('Error parsing individual comment:', parseError)
+              .filter((text: string) => text.trim().length > 0)
+            
+            commentText = textParts.join(' ').trim()
           }
+          
+          // Only store valid, readable comments
+          if (commentText && 
+              commentText.length > 0 && 
+              commentText.length < 1000 &&
+              !containsCorruptedText(commentText) &&
+              isReadableText(commentText)) {
+            
+            commentData[commentId] = {
+              text: cleanCommentText(commentText),
+              author: author,
+              date: date
+            }
+            
+            console.log(`Stored comment ${commentId} by ${author}: ${commentText.substring(0, 50)}...`)
+          }
+        } catch (error) {
+          console.error('Error parsing comment definition:', error)
+        }
+      })
+    }
+    
+    // Now find comment positions in document.xml
+    const commentPositions = findCommentPositions(documentXml)
+    console.log(`Found ${Object.keys(commentPositions).length} comment positions`)
+    
+    // Combine comment data with positions
+    Object.entries(commentData).forEach(([commentId, data]) => {
+      const position = commentPositions[commentId]
+      if (position) {
+        console.log(`Adding positioned comment ${commentId} at chars ${position.startChar}-${position.endChar}`)
+        
+        comments.push({
+          id: `word-comment-${comments.length + 1}`,
+          text: data.text,
+          author: data.author,
+          date: formatDate(data.date),
+          position: { start: position.startChar, end: position.endChar },
+          type: 'word-comment'
+        })
+      } else {
+        // Fallback: add comment with estimated position
+        console.log(`Adding comment ${commentId} with estimated position (no range markers found)`)
+        
+        const estimatedPosition = estimateCommentPosition(data.text, comments.length)
+        comments.push({
+          id: `word-comment-${comments.length + 1}`,
+          text: data.text,
+          author: data.author,
+          date: formatDate(data.date),
+          position: estimatedPosition,
+          type: 'word-comment'
         })
       }
-    }
+    })
     
-    // If no valid comments found, try alternative extraction methods
-    if (comments.length === 0) {
-      console.log('No valid comments found in XML, trying alternative methods...')
-      
-      // Try to find comments in document.xml with better filtering
-      const documentFile = zip.file('word/document.xml')
-      if (documentFile && commentsFile) {
-        const documentXml = await documentFile.async('string')
-        const commentsXml = await commentsFile.async('string')
-        
-        // Look for comment references and match them with actual comments
-        const commentRefs = documentXml.match(/<w:commentRangeStart[^>]*w:id="([^"]*)"[^>]*>/g)
-        if (commentRefs) {
-          commentRefs.forEach((ref: string, index: number) => {
-            const idMatch = ref.match(/w:id="([^"]*)"/)
-            if (idMatch) {
-              const commentId = idMatch[1]
-              
-              // Find the corresponding comment
-              const commentPattern = new RegExp(`<w:comment[^>]*w:id="${commentId}"[^>]*>([\\s\\S]*?)<\\/w:comment>`, 'g')
-              const commentMatch = commentPattern.exec(commentsXml)
-              
-              if (commentMatch) {
-                const commentContent = commentMatch[0]
-                const authorMatch = commentContent.match(/w:author="([^"]*)"/)
-                const dateMatch = commentContent.match(/w:date="([^"]*)"/)
-                
-                const author = authorMatch ? authorMatch[1] : `Commenter ${index + 1}`
-                const date = dateMatch ? dateMatch[1] : new Date().toISOString()
-                
-                // Extract text more carefully
-                const textElements = commentMatch[1].match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
-                let commentText = ''
-                
-                if (textElements) {
-                  const textParts = textElements
-                    .map((element: string) => {
-                      const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
-                      return textMatch ? textMatch[1] : ''
-                    })
-                    .filter((text: string) => text.trim().length > 0)
-                  
-                  commentText = textParts.join(' ').trim()
-                }
-                
-                if (commentText && 
-                    !containsCorruptedText(commentText) &&
-                    isReadableText(commentText)) {
-                  
-                  console.log(`Adding referenced comment by ${author}: ${commentText.substring(0, 100)}...`)
-                  
-                  comments.push({
-                    id: `word-comment-${comments.length + 1}`,
-                    text: cleanCommentText(commentText),
-                    author: author,
-                    date: formatDate(date),
-                    position: { start: 0, end: 0 },
-                    type: 'word-comment'
-                  })
-                }
-              }
-            }
-          })
-        }
-      }
-    }
-    
-    if (comments.length > 0) {
-      console.log(`Successfully extracted ${comments.length} clean Word comments`)
-    } else {
-      console.log('No readable Word comments found in document')
-    }
-    
+    console.log(`Successfully extracted ${comments.length} positioned Word comments`)
     return comments.slice(0, 10) // Limit to first 10 comments
     
   } catch (error) {
     console.error('Error extracting Word comments:', error)
     return []
+  }
+}
+
+function findCommentPositions(documentXml: string): Record<string, { startChar: number; endChar: number; commentedText: string }> {
+  const positions: Record<string, { startChar: number; endChar: number; commentedText: string }> = {}
+  
+  try {
+    // Extract all text content and build a character map
+    const { textContent, charToXmlMap } = extractTextWithPositions(documentXml)
+    console.log('Extracted text content length:', textContent.length)
+    
+    // Find all comment range markers
+    const rangeStarts: RegExpExecArray[] = []
+    const rangeEnds: RegExpExecArray[] = []
+    
+    let startMatch: RegExpExecArray | null
+    const startRegex = /<w:commentRangeStart[^>]*w:id="([^"]*)"[^>]*>/g
+    while ((startMatch = startRegex.exec(documentXml)) !== null) {
+      rangeStarts.push(startMatch)
+    }
+    
+    let endMatch: RegExpExecArray | null
+    const endRegex = /<w:commentRangeEnd[^>]*w:id="([^"]*)"[^>]*>/g
+    while ((endMatch = endRegex.exec(documentXml)) !== null) {
+      rangeEnds.push(endMatch)
+    }
+    
+    console.log(`Found ${rangeStarts.length} comment range starts and ${rangeEnds.length} comment range ends`)
+    
+    // Match starts with ends
+    rangeStarts.forEach((startMatch) => {
+      const commentId = startMatch[1]
+      const startXmlPos = startMatch.index!
+      
+      // Find corresponding end marker
+      const endMatch = rangeEnds.find(end => end[1] === commentId)
+      if (!endMatch) {
+        console.log(`No end marker found for comment ${commentId}`)
+        return
+      }
+      
+      const endXmlPos = endMatch.index!
+      
+      // Convert XML positions to text character positions
+      const startChar = xmlPositionToTextPosition(startXmlPos, charToXmlMap)
+      const endChar = xmlPositionToTextPosition(endXmlPos, charToXmlMap)
+      
+      if (startChar !== -1 && endChar !== -1 && endChar > startChar) {
+        const commentedText = textContent.substring(startChar, endChar)
+        positions[commentId] = {
+          startChar,
+          endChar,
+          commentedText
+        }
+        
+        console.log(`Comment ${commentId} positioned at ${startChar}-${endChar}: "${commentedText.substring(0, 50)}..."`)
+      } else {
+        console.log(`Invalid position calculation for comment ${commentId}: start=${startChar}, end=${endChar}`)
+      }
+    })
+    
+  } catch (error) {
+    console.error('Error finding comment positions:', error)
+  }
+  
+  return positions
+}
+
+function extractTextWithPositions(documentXml: string): { textContent: string; charToXmlMap: number[] } {
+  let textContent = ''
+  const charToXmlMap: number[] = []
+  
+  // Find all text elements and track their positions
+  const textMatches: RegExpExecArray[] = []
+  let textMatch: RegExpExecArray | null
+  const textRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g
+  while ((textMatch = textRegex.exec(documentXml)) !== null) {
+    textMatches.push(textMatch)
+  }
+  
+  textMatches.forEach((match) => {
+    const text = match[1]
+    const xmlPosition = match.index!
+    
+    // Add text to content and map each character to its XML position
+    for (let i = 0; i < text.length; i++) {
+      textContent += text[i]
+      charToXmlMap.push(xmlPosition + match[0].indexOf(text) + i)
+    }
+    
+    // Add space between text elements (Word behavior)
+    if (text.length > 0) {
+      textContent += ' '
+      charToXmlMap.push(xmlPosition + match[0].length)
+    }
+  })
+  
+  return { textContent, charToXmlMap }
+}
+
+function xmlPositionToTextPosition(xmlPos: number, charToXmlMap: number[]): number {
+  // Find the closest text character position for the given XML position
+  let closestIndex = -1
+  let minDistance = Infinity
+  
+  for (let i = 0; i < charToXmlMap.length; i++) {
+    const distance = Math.abs(charToXmlMap[i] - xmlPos)
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = i
+    }
+  }
+  
+  return closestIndex
+}
+
+function estimateCommentPosition(commentText: string, commentIndex: number): { start: number; end: number } {
+  // Fallback: distribute comments evenly throughout a typical document
+  const estimatedDocLength = 50000 // Assume average document length
+  const spacing = estimatedDocLength / 10 // Distribute across document
+  const position = commentIndex * spacing
+  
+  return {
+    start: Math.floor(position),
+    end: Math.floor(position) + Math.min(commentText.length, 100)
   }
 }
 
