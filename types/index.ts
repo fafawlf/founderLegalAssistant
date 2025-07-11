@@ -7,6 +7,10 @@ export interface LegalComment {
   comment_title: string
   comment_details: string
   recommendation: string
+  market_standard: {
+    is_standard: 'Yes' | 'No' | 'Partially'
+    reasoning: string
+  }
 }
 
 // Comment interface for WordLikeEditor component
@@ -74,9 +78,13 @@ export function convertToWordLikeComment(legalComment: LegalComment, fullText: s
   // Calculate start and end positions using context-based matching
   const { start, end } = findTextPosition(legalComment, fullText)
 
+  const marketStandardText = legalComment.market_standard 
+    ? `\n\nIs this market standard: ${legalComment.market_standard.is_standard}\n${legalComment.market_standard.reasoning}`
+    : ''
+
   return {
     id: legalComment.comment_id,
-    text: `${legalComment.comment_title}\n\n${legalComment.comment_details}\n\nRecommendation: ${legalComment.recommendation}`,
+    text: `${legalComment.comment_title}\n\n${legalComment.comment_details}\n\nRecommendation: ${legalComment.recommendation}${marketStandardText}`,
     author: 'AI Legal Assistant',
     start,
     end,

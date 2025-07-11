@@ -29,7 +29,11 @@ The JSON object must have the following structure:
       "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
       "comment_title": "A short, descriptive title for the issue (5-10 words).",
       "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
-      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for."
+      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for.",
+      "market_standard": {
+        "is_standard": "Answer 'Yes', 'No', or 'Partially' - whether this clause aligns with market standards",
+        "reasoning": "Explain why this is or isn't market standard. Reference NVCA model documents, common VC practices, or industry benchmarks. If it's not standard, explain how it deviates and what the market standard typically looks like."
+      }
     }
   ]
 }
@@ -74,7 +78,11 @@ The JSON object must have the following structure:
       "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
       "comment_title": "A short, descriptive title for the issue (5-10 words).",
       "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
-      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for."
+      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for.",
+      "market_standard": {
+        "is_standard": "Answer 'Yes', 'No', or 'Partially' - whether this clause aligns with market standards",
+        "reasoning": "Explain why this is or isn't market standard. Reference NVCA model documents, common VC practices, or industry benchmarks. If it's not standard, explain how it deviates and what the market standard typically looks like."
+      }
     }
   ]
 }

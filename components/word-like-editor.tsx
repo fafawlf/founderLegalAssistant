@@ -15,7 +15,7 @@ function getSeverityColor(severity: Comment['severity']) {
 }
 
 function parseCommentText(text: string | undefined) {
-  if (!text) return { title: 'No title', issue: 'No issue description', recommendation: 'No recommendation', isWordComment: false }
+  if (!text) return { title: 'No title', issue: 'No issue description', recommendation: 'No recommendation', marketStandard: null, isWordComment: false }
   
   // Ensure text is a string
   const textStr = String(text)
@@ -34,6 +34,7 @@ function parseCommentText(text: string | undefined) {
       title,
       issue: content || 'No content',
       recommendation: `Comment by ${author} on ${date}`,
+      marketStandard: null,
       isWordComment: true
     }
   }
@@ -45,6 +46,7 @@ function parseCommentText(text: string | undefined) {
       title: textStr.length > 50 ? textStr.substring(0, 50) + '...' : textStr,
       issue: textStr,
       recommendation: 'Original comment from Word document',
+      marketStandard: null,
       isWordComment: true
     }
   }
@@ -53,10 +55,28 @@ function parseCommentText(text: string | undefined) {
   const parts = textStr.split('\n\n')
   const recommendation = parts[2] ? parts[2].replace('Recommendation: ', '') : 'No recommendation'
   
+  // Parse market standard information
+  let marketStandard = null
+  if (parts[3] && parts[3].includes('Is this market standard:')) {
+    const marketStandardText = parts[3]
+    const lines = marketStandardText.split('\n')
+    const isStandardLine = lines.find(line => line.includes('Is this market standard:'))
+    const reasoning = lines.slice(1).join('\n').trim()
+    
+    if (isStandardLine) {
+      const isStandard = isStandardLine.replace('Is this market standard:', '').trim()
+      marketStandard = {
+        isStandard,
+        reasoning
+      }
+    }
+  }
+  
   return {
     title: parts[0] || 'No title',
     issue: parts[1] || 'No issue description',
     recommendation,
+    marketStandard,
     isWordComment: false
   }
 }
@@ -217,7 +237,7 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
             const colors = getSeverityColor(comment.severity)
             const isExpanded = expandedComments.has(comment.id)
             const position = commentPositions[comment.id] || (index * 180)
-            const { title, issue, recommendation, isWordComment } = parseCommentText(comment.text)
+            const { title, issue, recommendation, marketStandard, isWordComment } = parseCommentText(comment.text)
             
             return (
               <div
@@ -285,6 +305,27 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                         </span>
                         <p className="mt-1 text-gray-900 dark:text-gray-50 leading-relaxed whitespace-pre-wrap">{recommendation}</p>
                       </div>
+                      {marketStandard && !isWordComment && (
+                        <div>
+                          <span className="font-bold text-gray-900 dark:text-white">Market Standard:</span>
+                          <div className="mt-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                                marketStandard.isStandard === 'Yes' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                  : marketStandard.isStandard === 'No'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                              }`}>
+                                {marketStandard.isStandard}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                              {marketStandard.reasoning}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       <div className="text-xs text-gray-700 dark:text-gray-200 p-3 bg-gray-200/80 dark:bg-gray-600/80 rounded-lg border border-gray-300/50 dark:border-gray-500/50">
                         <span className="font-semibold text-gray-800 dark:text-gray-100">Referenced text:</span> 
                         <span className="text-gray-800 dark:text-gray-100 break-words ml-1">"{documentText.slice(comment.start, comment.end)}"</span>

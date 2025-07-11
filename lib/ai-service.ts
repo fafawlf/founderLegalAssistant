@@ -24,7 +24,11 @@ The JSON object must have the following structure:
       "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
       "comment_title": "A short, descriptive title for the issue (5-10 words).",
       "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
-      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for."
+      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for.",
+      "market_standard": {
+        "is_standard": "Answer 'Yes', 'No', or 'Partially' - whether this clause aligns with market standards",
+        "reasoning": "Explain why this is or isn't market standard. Reference NVCA model documents, common VC practices, or industry benchmarks. If it's not standard, explain how it deviates and what the market standard typically looks like."
+      }
     }
   ]
 }
@@ -67,6 +71,17 @@ export async function analyzeLegalDocument(
       throw new Error('Invalid response structure from AI model')
     }
     
+    // Validate each comment has the required market_standard field
+    const invalidComments = analysisResult.comments.filter(comment => 
+      !comment.market_standard || 
+      typeof comment.market_standard.is_standard !== 'string' ||
+      typeof comment.market_standard.reasoning !== 'string'
+    )
+    
+    if (invalidComments.length > 0) {
+      console.warn('Some comments missing market_standard field, but proceeding with analysis')
+    }
+    
     return analysisResult
   } catch (error) {
     console.error('Error analyzing legal document:', error)
@@ -89,7 +104,10 @@ export function validateAnalysisResult(result: any): result is AnalysisResult {
       typeof comment.severity === 'string' &&
       typeof comment.comment_title === 'string' &&
       typeof comment.comment_details === 'string' &&
-      typeof comment.recommendation === 'string'
+      typeof comment.recommendation === 'string' &&
+      typeof comment.market_standard === 'object' &&
+      typeof comment.market_standard.is_standard === 'string' &&
+      typeof comment.market_standard.reasoning === 'string'
     )
   )
 } 
