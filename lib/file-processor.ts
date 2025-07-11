@@ -108,50 +108,63 @@ async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<Wo
     if (commentsFile) {
       console.log('Found word/comments.xml, extracting structured comments...')
       const commentsXml = await commentsFile.async('string')
-      console.log('Comments XML preview:', commentsXml.substring(0, 500))
+      console.log('Comments XML length:', commentsXml.length)
       
-             // Parse the XML properly
-       const commentMatches = commentsXml.match(/<w:comment[^>]*>[\s\S]*?<\/w:comment>/g)
-       if (commentMatches) {
-         commentMatches.forEach((commentXml: string, index: number) => {
+      // Parse the XML more carefully to avoid corrupted text
+      const commentMatches = commentsXml.match(/<w:comment[^>]*>[\s\S]*?<\/w:comment>/g)
+      if (commentMatches) {
+        console.log(`Found ${commentMatches.length} comment elements`)
+        
+        commentMatches.forEach((commentXml: string, index: number) => {
           try {
             // Extract author
             const authorMatch = commentXml.match(/w:author="([^"]*)"/)
-            const author = authorMatch ? authorMatch[1] : `Commenter ${index + 1}`
+            let author = authorMatch ? authorMatch[1] : ''
+            
+            // Extract initials as fallback
+            const initialsMatch = commentXml.match(/w:initials="([^"]*)"/)
+            if (!author && initialsMatch) {
+              author = initialsMatch[1]
+            }
             
             // Extract date
             const dateMatch = commentXml.match(/w:date="([^"]*)"/)
             const date = dateMatch ? dateMatch[1] : new Date().toISOString()
             
-            // Extract initials as fallback author
-            const initialsMatch = commentXml.match(/w:initials="([^"]*)"/)
-            const finalAuthor = author || (initialsMatch ? initialsMatch[1] : `Commenter ${index + 1}`)
-            
-            // Extract text content properly
+            // Extract text content more carefully
             const textElements = commentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
             let commentText = ''
+            
             if (textElements) {
-              commentText = textElements
+              const textParts = textElements
                 .map((element: string) => {
                   const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
                   return textMatch ? textMatch[1] : ''
                 })
                 .filter((text: string) => text.trim().length > 0)
-                .join(' ')
-                .trim()
+              
+              commentText = textParts.join(' ').trim()
             }
             
-            if (commentText && commentText.length > 0 && !commentText.includes('')) {
-              console.log(`Extracted clean comment by ${finalAuthor}: ${commentText.substring(0, 100)}...`)
+            // Only add comments with valid, readable text
+            if (commentText && 
+                commentText.length > 0 && 
+                commentText.length < 1000 && // Reasonable length limit
+                !containsCorruptedText(commentText) &&
+                isReadableText(commentText)) {
+              
+              console.log(`Adding clean comment by ${author || 'Unknown'}: ${commentText.substring(0, 100)}...`)
               
               comments.push({
                 id: `word-comment-${comments.length + 1}`,
                 text: cleanCommentText(commentText),
-                author: finalAuthor,
+                author: author || `Commenter ${index + 1}`,
                 date: formatDate(date),
                 position: { start: 0, end: 0 },
                 type: 'word-comment'
               })
+            } else {
+              console.log(`Skipping corrupted/invalid comment: ${commentText.substring(0, 50)}...`)
             }
           } catch (parseError) {
             console.error('Error parsing individual comment:', parseError)
@@ -160,25 +173,25 @@ async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<Wo
       }
     }
     
-    // If no comments found in comments.xml, try alternative approach with document.xml
+    // If no valid comments found, try alternative extraction methods
     if (comments.length === 0) {
-      console.log('No comments in comments.xml, trying document.xml approach...')
+      console.log('No valid comments found in XML, trying alternative methods...')
       
+      // Try to find comments in document.xml with better filtering
       const documentFile = zip.file('word/document.xml')
-      if (documentFile) {
+      if (documentFile && commentsFile) {
         const documentXml = await documentFile.async('string')
+        const commentsXml = await commentsFile.async('string')
         
-        // Look for comment reference ranges in the document
+        // Look for comment references and match them with actual comments
         const commentRefs = documentXml.match(/<w:commentRangeStart[^>]*w:id="([^"]*)"[^>]*>/g)
-        if (commentRefs && commentsFile) {
-          const commentsXml = await commentsFile.async('string')
-          
+        if (commentRefs) {
           commentRefs.forEach((ref: string, index: number) => {
             const idMatch = ref.match(/w:id="([^"]*)"/)
             if (idMatch) {
               const commentId = idMatch[1]
               
-              // Find the corresponding comment in comments.xml
+              // Find the corresponding comment
               const commentPattern = new RegExp(`<w:comment[^>]*w:id="${commentId}"[^>]*>([\\s\\S]*?)<\\/w:comment>`, 'g')
               const commentMatch = commentPattern.exec(commentsXml)
               
@@ -190,22 +203,26 @@ async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<Wo
                 const author = authorMatch ? authorMatch[1] : `Commenter ${index + 1}`
                 const date = dateMatch ? dateMatch[1] : new Date().toISOString()
                 
-                // Extract clean text
+                // Extract text more carefully
                 const textElements = commentMatch[1].match(/<w:t[^>]*>([^<]*)<\/w:t>/g)
                 let commentText = ''
+                
                 if (textElements) {
-                  commentText = textElements
+                  const textParts = textElements
                     .map((element: string) => {
                       const textMatch = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/)
                       return textMatch ? textMatch[1] : ''
                     })
                     .filter((text: string) => text.trim().length > 0)
-                    .join(' ')
-                    .trim()
+                  
+                  commentText = textParts.join(' ').trim()
                 }
                 
-                if (commentText && commentText.length > 0 && !commentText.includes('')) {
-                  console.log(`Extracted referenced comment by ${author}: ${commentText.substring(0, 100)}...`)
+                if (commentText && 
+                    !containsCorruptedText(commentText) &&
+                    isReadableText(commentText)) {
+                  
+                  console.log(`Adding referenced comment by ${author}: ${commentText.substring(0, 100)}...`)
                   
                   comments.push({
                     id: `word-comment-${comments.length + 1}`,
@@ -223,73 +240,40 @@ async function extractWordCommentsComprehensive(buffer: ArrayBuffer): Promise<Wo
       }
     }
     
-    // If still no comments found, try mammoth's comment extraction as fallback
-    if (comments.length === 0) {
-      console.log('No comments found in XML files, trying mammoth extraction...')
-      try {
-        const mammothBuffer = Buffer.from(buffer)
-        const result = await mammoth.convertToHtml({ buffer: mammothBuffer })
-        
-        // Look for any comment-like patterns in the converted text
-        const htmlText = result.value
-        if (htmlText.includes('comment') || htmlText.includes('Comment')) {
-          console.log('Found potential comments in mammoth output, but extraction method needs improvement')
-          // For now, we'll rely on the XML-based extraction above
-        }
-      } catch (mammothError) {
-        console.error('Mammoth fallback failed:', mammothError)
-      }
-    }
-    
     if (comments.length > 0) {
-      console.log(`Successfully extracted ${comments.length} clean Word comments:`)
-      comments.forEach((comment, idx) => {
-        console.log(`  ${idx + 1}. Author: ${comment.author}, Text: ${comment.text.substring(0, 100)}...`)
-      })
+      console.log(`Successfully extracted ${comments.length} clean Word comments`)
     } else {
-      console.log('No readable Word comments found')
+      console.log('No readable Word comments found in document')
     }
     
     return comments.slice(0, 10) // Limit to first 10 comments
     
   } catch (error) {
     console.error('Error extracting Word comments:', error)
-    
-    // Final fallback: try the old method but with better text cleaning
-    try {
-      const uint8Array = new Uint8Array(buffer)
-      const decoder = new TextDecoder('utf-8', { fatal: false })
-      const content = decoder.decode(uint8Array)
-      
-      // Look for readable text patterns that might be comments
-      const readablePatterns = [
-        /(?:Lifan\s+Wang|Wang,?\s+Lifan|Coronado,?\s+Andre|Andre\s+Coronado)[\s:]+([A-Za-z\s,.\-!?]{10,200})/gi,
-        /Comment[\s:]+([A-Za-z\s,.\-!?]{10,200})/gi
-      ]
-      
-      for (const pattern of readablePatterns) {
-        let match
-        while ((match = pattern.exec(content)) !== null && comments.length < 5) {
-          const text = match[1]?.trim()
-          if (text && !text.includes('') && text.length > 10) {
-            comments.push({
-              id: `word-comment-${comments.length + 1}`,
-              text: cleanCommentText(text),
-              author: match[0].includes('Lifan') ? 'Lifan Wang' : 
-                      match[0].includes('Coronado') ? 'Coronado, Andre' : 'Unknown Author',
-              date: new Date().toISOString(),
-              position: { start: 0, end: 0 },
-              type: 'word-comment'
-            })
-          }
-        }
-      }
-    } catch (fallbackError) {
-      console.error('Fallback extraction also failed:', fallbackError)
-    }
-    
-    return comments
+    return []
   }
+}
+
+function containsCorruptedText(text: string): boolean {
+  // Check for signs of corrupted/binary text
+  const corruptionIndicators = [
+    /[^\x20-\x7E\u00A0-\uFFFF]/g, // Non-printable characters
+    /[\x00-\x1F\x7F-\x9F]/g, // Control characters
+    /�/g, // Replacement characters
+    /\ufffd/g, // Unicode replacement character
+  ]
+  
+  return corruptionIndicators.some(pattern => pattern.test(text))
+}
+
+function isReadableText(text: string): boolean {
+  if (!text || text.length < 3) return false
+  
+  // Check if text contains mostly readable characters
+  const readableChars = text.match(/[a-zA-Z0-9\s.,!?;:()\-'"]/g) || []
+  const readableRatio = readableChars.length / text.length
+  
+  return readableRatio > 0.7 // At least 70% readable characters
 }
 
 function cleanCommentText(text: string): string {
@@ -297,7 +281,7 @@ function cleanCommentText(text: string): string {
     .replace(/<[^>]*>/g, '') // Remove HTML/XML tags
     .replace(/&[a-z]+;/gi, '') // Remove HTML entities
     .replace(/\s+/g, ' ') // Normalize whitespace
-    .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '') // Remove control characters but keep unicode
+    .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '') // Remove non-printable characters
     .trim()
 }
 

@@ -9,7 +9,13 @@ const DEFAULT_SYSTEM_PROMPT = `You are a world-class lawyer from a top-tier Sili
 
 When analyzing clauses, compare them against market standards including NVCA (National Venture Capital Association) model documents and industry best practices. Highlight any terms that deviate unfavorably from these standards and suggest founder-friendly alternatives.
 
-Your response MUST be a single, valid JSON object. Do not add any text before or after the JSON object.
+CRITICAL: Your response MUST be a single, valid JSON object with NO additional text before or after. The JSON must be properly formatted with valid syntax.
+
+IMPORTANT: When writing JSON strings that contain quotes (like "Investors' Rights"), you MUST escape the inner quotes properly. For example:
+- WRONG: "analysis_summary": "This Investors' Rights Agreement grants..."
+- CORRECT: "analysis_summary": "This Investors\\' Rights Agreement grants..."
+
+Always use double quotes for JSON strings and escape any inner quotes with backslashes.
 
 The JSON object must have the following structure:
 {
@@ -32,6 +38,13 @@ The JSON object must have the following structure:
     }
   ]
 }
+
+CRITICAL JSON REQUIREMENTS:
+1. All strings must be properly escaped (use \\" for quotes, \\\\ for backslashes, \\n for newlines)
+2. No trailing commas
+3. All property names must be in double quotes
+4. No single quotes allowed
+5. All text must be valid JSON string content
 
 CRITICAL POSITIONING REQUIREMENTS:
 1. context_before and context_after must be exact verbatim text from the document
@@ -57,14 +70,35 @@ export async function analyzeLegalDocument(
     })
     
     const textResponse = response.text || ''
+    console.log('AI Response length:', textResponse.length)
+    console.log('AI Response preview:', textResponse.substring(0, 200))
     
-    // Extract JSON from response
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from AI model')
+    // Clean and extract JSON more robustly
+    let jsonString = extractAndCleanJson(textResponse)
+    
+    console.log('Attempting to parse JSON, length:', jsonString.length)
+    console.log('JSON preview:', jsonString.substring(0, 500))
+    
+    let analysisResult: AnalysisResult
+    try {
+      analysisResult = JSON.parse(jsonString)
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+      console.error('Problematic JSON (first 2000 chars):', jsonString.substring(0, 2000))
+      
+      // Try more aggressive JSON fixing
+      console.log('Attempting to fix JSON issues...')
+      const fixedJson = fixJsonAggressively(jsonString)
+      
+      try {
+        analysisResult = JSON.parse(fixedJson)
+        console.log('Successfully parsed JSON after fixing')
+      } catch (secondError) {
+        console.error('Failed to parse even after fixing:', secondError)
+        console.error('Fixed JSON preview:', fixedJson.substring(0, 1000))
+        throw new Error('Invalid JSON response from AI model')
+      }
     }
-    
-    const analysisResult: AnalysisResult = JSON.parse(jsonMatch[0])
     
     // Validate the response structure
     if (!analysisResult.document_id || !analysisResult.comments || !Array.isArray(analysisResult.comments)) {
@@ -85,8 +119,145 @@ export async function analyzeLegalDocument(
     return analysisResult
   } catch (error) {
     console.error('Error analyzing legal document:', error)
+    
+    // As a last resort, create a basic analysis result
+    if (error instanceof Error && error.message.includes('Invalid JSON response')) {
+      console.log('Creating fallback analysis result...')
+      return {
+        document_id: `doc-${Date.now()}`,
+        analysis_summary: 'Document analysis completed, but there was an issue parsing the detailed results. Please try uploading the document again for full analysis.',
+        comments: [{
+          comment_id: 'fallback-comment',
+          context_before: '',
+          original_text: 'Document requires review',
+          context_after: '',
+          severity: 'Recommend to Change',
+          comment_title: 'Document Analysis Issue',
+          comment_details: 'There was a technical issue analyzing this document. Please try uploading again or contact support if the problem persists.',
+          recommendation: 'Please re-upload the document for a complete analysis.',
+          market_standard: {
+            is_standard: 'No',
+            reasoning: 'Unable to complete market standard analysis due to technical issues.'
+          }
+        }]
+      }
+    }
+    
     throw new Error('Failed to analyze document. Please try again.')
   }
+}
+
+function extractAndCleanJson(textResponse: string): string {
+  // Remove any markdown code blocks
+  let jsonString = textResponse.trim()
+  jsonString = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '')
+  
+  // Extract JSON from response - look for the main JSON object
+  const jsonStart = jsonString.indexOf('{')
+  const jsonEnd = jsonString.lastIndexOf('}')
+  
+  if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
+    console.error('No valid JSON object found in response')
+    throw new Error('Invalid response format from AI model - no JSON object found')
+  }
+  
+  jsonString = jsonString.substring(jsonStart, jsonEnd + 1)
+  
+  // Basic cleanup
+  return jsonString
+    .replace(/\r\n/g, '\n')  // Normalize line endings
+    .replace(/\r/g, '\n')    // Normalize line endings
+}
+
+function fixJsonAggressively(jsonString: string): string {
+  let fixed = jsonString
+  
+  try {
+    // Step 1: Fix common quote issues
+    // Replace smart quotes with regular quotes
+    fixed = fixed.replace(/[""]/g, '"')
+    fixed = fixed.replace(/['']/g, "'")
+    
+    // Step 2: Fix mixed quote issues in strings
+    // This is tricky - we need to find strings that have mixed quotes
+    // and properly escape them
+    
+    // Step 3: Fix trailing commas
+    fixed = fixed.replace(/,(\s*[}\]])/g, '$1')
+    
+    // Step 4: Fix unescaped quotes in strings
+    // This is a more sophisticated approach to handle nested quotes
+    fixed = fixNestedQuotes(fixed)
+    
+    // Step 5: Fix unescaped newlines in strings
+    fixed = fixed.replace(/([^\\])\n/g, '$1\\n')
+    
+    // Step 6: Fix unescaped backslashes
+    fixed = fixed.replace(/\\(?!["\\/bfnrt])/g, '\\\\')
+    
+    return fixed
+  } catch (error) {
+    console.error('Error in aggressive JSON fixing:', error)
+    return jsonString // Return original if fixing fails
+  }
+}
+
+function fixNestedQuotes(jsonString: string): string {
+  // This function attempts to fix nested quotes in JSON strings
+  // It's a complex problem, so we'll use a simple heuristic
+  
+  let result = ''
+  let inString = false
+  let escapeNext = false
+  
+  for (let i = 0; i < jsonString.length; i++) {
+    const char = jsonString[i]
+    const nextChar = jsonString[i + 1]
+    
+    if (escapeNext) {
+      result += char
+      escapeNext = false
+      continue
+    }
+    
+    if (char === '\\') {
+      result += char
+      escapeNext = true
+      continue
+    }
+    
+    if (char === '"') {
+      if (!inString) {
+        // Starting a string
+        inString = true
+        result += char
+      } else {
+        // Check if this is the end of the string or a nested quote
+        // Look ahead to see if this looks like the end of a string
+        const lookAhead = jsonString.substring(i + 1, i + 10)
+        if (lookAhead.match(/^\s*[,:}\]]/)) {
+          // This looks like the end of a string
+          inString = false
+          result += char
+        } else {
+          // This looks like a nested quote, escape it
+          result += '\\"'
+        }
+      }
+    } else {
+      result += char
+    }
+  }
+  
+  return result
+}
+
+function fixCommonJsonIssues(jsonString: string): string {
+  // This is now a simpler version for basic fixes
+  return jsonString
+    .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
+    .replace(/\n/g, '\\n')          // Escape newlines
+    .replace(/\t/g, '\\t')          // Escape tabs
 }
 
 export function validateAnalysisResult(result: any): result is AnalysisResult {
