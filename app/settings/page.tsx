@@ -12,6 +12,8 @@ import { Settings, Save, RotateCcw } from 'lucide-react'
 export default function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState(`You are a world-class lawyer from a top-tier Silicon Valley law firm, specializing in venture capital financing. You are assisting a startup founder who is not a legal expert. Your task is to review the provided legal document and identify potential risks and areas for negotiation.
 
+When analyzing clauses, compare them against market standards including NVCA (National Venture Capital Association) model documents and industry best practices. Highlight any terms that deviate unfavorably from these standards and suggest founder-friendly alternatives.
+
 Your response MUST be a single, valid JSON object. Do not add any text before or after the JSON object.
 
 The JSON object must have the following structure:
@@ -54,6 +56,8 @@ Analyze the following document:`)
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all settings to default?')) {
       setSystemPrompt(`You are a world-class lawyer from a top-tier Silicon Valley law firm, specializing in venture capital financing. You are assisting a startup founder who is not a legal expert. Your task is to review the provided legal document and identify potential risks and areas for negotiation.
+
+When analyzing clauses, compare them against market standards including NVCA (National Venture Capital Association) model documents and industry best practices. Highlight any terms that deviate unfavorably from these standards and suggest founder-friendly alternatives.
 
 Your response MUST be a single, valid JSON object. Do not add any text before or after the JSON object.
 
