@@ -1,284 +1,141 @@
 import { GoogleGenAI } from '@google/genai'
 import type { AnalysisResult, LegalComment } from '@/types'
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || ''
-})
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || '' })
 
-const DEFAULT_SYSTEM_PROMPT = `You are a world-class lawyer from a top-tier Silicon Valley law firm, specializing in venture capital financing. You are assisting a startup founder who is not a legal expert. Your task is to review the provided legal document and identify potential risks and areas for negotiation. The risk includes legal risk and also risk that founders might miss while busy building (e.g. repurchase needs to happen within xx months). IMPORTANT: You will always on the founder's side and maximize founder's benefit.
+// 简单的内存缓存
+const analysisCache = new Map<string, AnalysisResult>()
 
-When analyzing clauses, compare them against market standards including NVCA (National Venture Capital Association) model documents and industry best practices. Highlight any terms that deviate unfavorably from these standards and suggest founder-friendly alternatives.
+// 生成缓存键
+function generateCacheKey(text: string, systemPrompt?: string): string {
+  const content = `${text}-${systemPrompt || 'default'}`
+  // 简单哈希函数
+  let hash = 0
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // 转换为32位整数
+  }
+  return hash.toString()
+}
 
-CRITICAL: Your response MUST be a single, valid JSON object with NO additional text before or after. The JSON must be properly formatted with valid syntax.
+function parseRobustJson(textResponse: string): AnalysisResult {
+  console.log('Attempting to parse JSON, length:', textResponse.length)
+  console.log('JSON preview:', textResponse.substring(0, 500))
+  
+  try {
+    // 基本清理
+    let jsonText = textResponse.trim()
+    
+    // 移除markdown代码块
+    jsonText = jsonText.replace(/^```(?:json)?\s*/g, '')
+    jsonText = jsonText.replace(/```\s*$/g, '')
+    
+    // 修复智能引号
+    jsonText = jsonText.replace(/[""]/g, '"')
+    jsonText = jsonText.replace(/['']/g, "'")
+    
+    // 移除尾随逗号
+    jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1')
+    
+    const result = JSON.parse(jsonText)
+    console.log('Successfully parsed JSON')
+    return result
+  } catch (error) {
+    console.log('JSON parse error:', error)
+    
+    // 返回fallback结果
+    return {
+      document_id: `fallback-${Date.now()}`,
+      analysis_summary: 'Document analysis encountered technical issues. Please try again or consult legal counsel.',
+      comments: [{
+        comment_id: 'fallback-comment',
+        context_before: '',
+        original_text: 'Document requires review',
+        context_after: '',
+        severity: 'Recommend to Change',
+        comment_title: 'Technical Analysis Issue',
+        comment_details: 'The automated analysis could not be completed due to technical issues. Please have this document reviewed manually.',
+        recommendation: 'Consult with qualified legal counsel for a thorough review.',
+        market_standard: {
+          is_standard: 'Partially',
+          reasoning: 'Unable to complete market analysis.'
+        }
+      }]
+    }
+  }
+}
 
-IMPORTANT: When writing JSON strings that contain quotes (like "Investors' Rights"), you MUST escape the inner quotes properly. For example:
-- WRONG: "analysis_summary": "This Investors' Rights Agreement grants..."
-- CORRECT: "analysis_summary": "This Investors\\' Rights Agreement grants..."
+const DEFAULT_SYSTEM_PROMPT = `You are a senior legal advisor helping a startup founder review legal documents. 
 
-Always use double quotes for JSON strings and escape any inner quotes with backslashes.
+Analyze the document and return ONLY a valid JSON object with this exact structure:
 
-The JSON object must have the following structure:
 {
-  "document_id": "A unique identifier for the document",
-  "analysis_summary": "A brief, 2-3 sentence summary of the overall document and its key risks.",
+  "document_id": "unique-id",
+  "analysis_summary": "Brief summary of key issues",
   "comments": [
     {
-      "comment_id": "A unique identifier for the comment",
-      "context_before": "CRITICAL FOR POSITIONING: Extract 10-20 words (not just 5-10) immediately PRECEDING the target text. Include punctuation and exact spacing. This must be verbatim text from the document. If the target text is at the very beginning, this can be empty string.",
-      "original_text": "CRITICAL FOR POSITIONING: Extract the exact, verbatim text snippet that this comment refers to. This must be character-perfect match from the document. Include all punctuation, spacing, and capitalization exactly as it appears.",
-      "context_after": "CRITICAL FOR POSITIONING: Extract 10-20 words (not just 5-10) immediately FOLLOWING the target text. Include punctuation and exact spacing. This must be verbatim text from the document. If the target text is at the very end, this can be empty string.",
-      "severity": "Categorize the issue into one of three levels: 'Must Change', 'Recommend to Change', or 'Negotiable'.",
-      "comment_title": "A short, descriptive title for the issue (5-10 words).",
-      "comment_details": "A detailed explanation of why this clause is a problem, written in simple, easy-to-understand language for a non-lawyer. Explain the potential negative impact on the founder or the company.",
-      "recommendation": "Provide concrete, actionable advice. Suggest specific alternative wording or negotiation strategies. Clearly state what the founder should ask for.",
+      "comment_id": "comment-1", 
+      "context_before": "text before",
+      "original_text": "exact text from document",
+      "context_after": "text after",
+      "severity": "Must Change",
+      "comment_title": "Short title",
+      "comment_details": "Explanation of the issue",
+      "recommendation": "What to do about it",
       "market_standard": {
-        "is_standard": "Answer 'Yes', 'No', or 'Partially' - whether this clause aligns with market standards",
-        "reasoning": "Explain why this is or isn't market standard. Reference NVCA model documents, common VC practices, or industry benchmarks. If it's not standard, explain how it deviates and what the market standard typically looks like."
+        "is_standard": "Yes/No/Partially",
+        "reasoning": "Brief explanation"
       }
     }
   ]
 }
 
-CRITICAL JSON REQUIREMENTS:
-1. All strings must be properly escaped (use \\" for quotes, \\\\ for backslashes, \\n for newlines)
-2. No trailing commas
-3. All property names must be in double quotes
-4. No single quotes allowed
-5. All text must be valid JSON string content
-
-CRITICAL POSITIONING REQUIREMENTS:
-1. context_before and context_after must be exact verbatim text from the document
-2. Include at least 10-20 words in context (more is better for unique matching)
-3. Include punctuation, line breaks, and spacing exactly as they appear
-4. The combination of context_before + original_text + context_after should form a unique, findable sequence in the document
-5. Double-check that your extracted text exactly matches the source document
-
-Analyze the following document:`
+CRITICAL: Return ONLY the JSON object. No markdown formatting, no explanations, no additional text.`
 
 export async function analyzeLegalDocument(
-  text: string,
-  systemPrompt: string = DEFAULT_SYSTEM_PROMPT,
-  temperature: number = 0.1,
+  text: string, 
+  systemPrompt?: string, 
+  temperature: number = 0.1, 
   topP: number = 0.8
 ): Promise<AnalysisResult> {
   try {
-    const prompt = `${systemPrompt}\n\n${text}`
+    // 检查缓存
+    const cacheKey = generateCacheKey(text, systemPrompt)
+    const cachedResult = analysisCache.get(cacheKey)
     
+    if (cachedResult) {
+      console.log('Returning cached analysis result')
+      return cachedResult
+    }
+
+    console.log('Making new AI API call...')
+    
+    // 使用正确的API调用方式
+    const prompt = systemPrompt || DEFAULT_SYSTEM_PROMPT
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: prompt,
+      model: 'gemini-2.5-pro',
+      contents: `${prompt}\n\nDocument to analyze:\n${text}`,
     })
+
+    const textResponse = response.text
     
-    const textResponse = response.text || ''
+    if (!textResponse) {
+      throw new Error('No response text received from AI model')
+    }
+
     console.log('AI Response length:', textResponse.length)
     console.log('AI Response preview:', textResponse.substring(0, 200))
+
+    const result = parseRobustJson(textResponse)
     
-    // Clean and extract JSON more robustly
-    let jsonString = extractAndCleanJson(textResponse)
+    // 缓存结果
+    analysisCache.set(cacheKey, result)
+    console.log('Cached analysis result')
     
-    console.log('Attempting to parse JSON, length:', jsonString.length)
-    console.log('JSON preview:', jsonString.substring(0, 500))
-    
-    let analysisResult: AnalysisResult
-    try {
-      analysisResult = JSON.parse(jsonString)
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-      console.error('Problematic JSON (first 2000 chars):', jsonString.substring(0, 2000))
-      
-      // Try more aggressive JSON fixing
-      console.log('Attempting to fix JSON issues...')
-      const fixedJson = fixJsonAggressively(jsonString)
-      
-      try {
-        analysisResult = JSON.parse(fixedJson)
-        console.log('Successfully parsed JSON after fixing')
-      } catch (secondError) {
-        console.error('Failed to parse even after fixing:', secondError)
-        console.error('Fixed JSON preview:', fixedJson.substring(0, 1000))
-        throw new Error('Invalid JSON response from AI model')
-      }
-    }
-    
-    // Validate the response structure
-    if (!analysisResult.document_id || !analysisResult.comments || !Array.isArray(analysisResult.comments)) {
-      throw new Error('Invalid response structure from AI model')
-    }
-    
-    // Validate each comment has the required market_standard field
-    const invalidComments = analysisResult.comments.filter(comment => 
-      !comment.market_standard || 
-      typeof comment.market_standard.is_standard !== 'string' ||
-      typeof comment.market_standard.reasoning !== 'string'
-    )
-    
-    if (invalidComments.length > 0) {
-      console.warn('Some comments missing market_standard field, but proceeding with analysis')
-    }
-    
-    return analysisResult
+    return result
   } catch (error) {
     console.error('Error analyzing legal document:', error)
-    
-    // As a last resort, create a basic analysis result
-    if (error instanceof Error && error.message.includes('Invalid JSON response')) {
-      console.log('Creating fallback analysis result...')
-      return {
-        document_id: `doc-${Date.now()}`,
-        analysis_summary: 'Document analysis completed, but there was an issue parsing the detailed results. Please try uploading the document again for full analysis.',
-        comments: [{
-          comment_id: 'fallback-comment',
-          context_before: '',
-          original_text: 'Document requires review',
-          context_after: '',
-          severity: 'Recommend to Change',
-          comment_title: 'Document Analysis Issue',
-          comment_details: 'There was a technical issue analyzing this document. Please try uploading again or contact support if the problem persists.',
-          recommendation: 'Please re-upload the document for a complete analysis.',
-          market_standard: {
-            is_standard: 'No',
-            reasoning: 'Unable to complete market standard analysis due to technical issues.'
-          }
-        }]
-      }
-    }
-    
     throw new Error('Failed to analyze document. Please try again.')
   }
-}
-
-function extractAndCleanJson(textResponse: string): string {
-  // Remove any markdown code blocks
-  let jsonString = textResponse.trim()
-  jsonString = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '')
-  
-  // Extract JSON from response - look for the main JSON object
-  const jsonStart = jsonString.indexOf('{')
-  const jsonEnd = jsonString.lastIndexOf('}')
-  
-  if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
-    console.error('No valid JSON object found in response')
-    throw new Error('Invalid response format from AI model - no JSON object found')
-  }
-  
-  jsonString = jsonString.substring(jsonStart, jsonEnd + 1)
-  
-  // Basic cleanup
-  return jsonString
-    .replace(/\r\n/g, '\n')  // Normalize line endings
-    .replace(/\r/g, '\n')    // Normalize line endings
-}
-
-function fixJsonAggressively(jsonString: string): string {
-  let fixed = jsonString
-  
-  try {
-    // Step 1: Fix common quote issues
-    // Replace smart quotes with regular quotes
-    fixed = fixed.replace(/[""]/g, '"')
-    fixed = fixed.replace(/['']/g, "'")
-    
-    // Step 2: Fix mixed quote issues in strings
-    // This is tricky - we need to find strings that have mixed quotes
-    // and properly escape them
-    
-    // Step 3: Fix trailing commas
-    fixed = fixed.replace(/,(\s*[}\]])/g, '$1')
-    
-    // Step 4: Fix unescaped quotes in strings
-    // This is a more sophisticated approach to handle nested quotes
-    fixed = fixNestedQuotes(fixed)
-    
-    // Step 5: Fix unescaped newlines in strings
-    fixed = fixed.replace(/([^\\])\n/g, '$1\\n')
-    
-    // Step 6: Fix unescaped backslashes
-    fixed = fixed.replace(/\\(?!["\\/bfnrt])/g, '\\\\')
-    
-    return fixed
-  } catch (error) {
-    console.error('Error in aggressive JSON fixing:', error)
-    return jsonString // Return original if fixing fails
-  }
-}
-
-function fixNestedQuotes(jsonString: string): string {
-  // This function attempts to fix nested quotes in JSON strings
-  // It's a complex problem, so we'll use a simple heuristic
-  
-  let result = ''
-  let inString = false
-  let escapeNext = false
-  
-  for (let i = 0; i < jsonString.length; i++) {
-    const char = jsonString[i]
-    const nextChar = jsonString[i + 1]
-    
-    if (escapeNext) {
-      result += char
-      escapeNext = false
-      continue
-    }
-    
-    if (char === '\\') {
-      result += char
-      escapeNext = true
-      continue
-    }
-    
-    if (char === '"') {
-      if (!inString) {
-        // Starting a string
-        inString = true
-        result += char
-      } else {
-        // Check if this is the end of the string or a nested quote
-        // Look ahead to see if this looks like the end of a string
-        const lookAhead = jsonString.substring(i + 1, i + 10)
-        if (lookAhead.match(/^\s*[,:}\]]/)) {
-          // This looks like the end of a string
-          inString = false
-          result += char
-        } else {
-          // This looks like a nested quote, escape it
-          result += '\\"'
-        }
-      }
-    } else {
-      result += char
-    }
-  }
-  
-  return result
-}
-
-function fixCommonJsonIssues(jsonString: string): string {
-  // This is now a simpler version for basic fixes
-  return jsonString
-    .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
-    .replace(/\n/g, '\\n')          // Escape newlines
-    .replace(/\t/g, '\\t')          // Escape tabs
-}
-
-export function validateAnalysisResult(result: any): result is AnalysisResult {
-  return (
-    typeof result === 'object' &&
-    typeof result.document_id === 'string' &&
-    typeof result.analysis_summary === 'string' &&
-    Array.isArray(result.comments) &&
-    result.comments.every((comment: any) => 
-      typeof comment === 'object' &&
-      typeof comment.comment_id === 'string' &&
-      typeof comment.context_before === 'string' &&
-      typeof comment.original_text === 'string' &&
-      typeof comment.context_after === 'string' &&
-      typeof comment.severity === 'string' &&
-      typeof comment.comment_title === 'string' &&
-      typeof comment.comment_details === 'string' &&
-      typeof comment.recommendation === 'string' &&
-      typeof comment.market_standard === 'object' &&
-      typeof comment.market_standard.is_standard === 'string' &&
-      typeof comment.market_standard.reasoning === 'string'
-    )
-  )
 } 

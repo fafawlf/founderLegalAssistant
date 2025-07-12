@@ -69,6 +69,8 @@ export interface ActionResponse<T = any> {
 
 // Utility function to convert LegalComment to Comment for WordLikeEditor
 export function convertToWordLikeComment(legalComment: LegalComment, fullText: string): Comment {
+  console.log('Converting LegalComment to WordLikeComment:', legalComment.comment_id)
+  
   const severityMap: Record<SeverityLevel, Comment['severity']> = {
     'Must Change': 'high',
     'Recommend to Change': 'medium',
@@ -77,12 +79,13 @@ export function convertToWordLikeComment(legalComment: LegalComment, fullText: s
 
   // Calculate start and end positions using context-based matching
   const { start, end } = findTextPosition(legalComment, fullText)
+  console.log(`Comment ${legalComment.comment_id} positioned at ${start}-${end}`)
 
   const marketStandardText = legalComment.market_standard 
     ? `\n\nIs this market standard: ${legalComment.market_standard.is_standard}\n${legalComment.market_standard.reasoning}`
     : ''
 
-  return {
+  const result = {
     id: legalComment.comment_id,
     text: `${legalComment.comment_title}\n\n${legalComment.comment_details}\n\nRecommendation: ${legalComment.recommendation}${marketStandardText}`,
     author: 'AI Legal Assistant',
@@ -90,6 +93,9 @@ export function convertToWordLikeComment(legalComment: LegalComment, fullText: s
     end,
     severity: severityMap[legalComment.severity]
   }
+  
+  console.log('Converted comment:', result)
+  return result
 }
 
 // Helper function to find text position using context matching
