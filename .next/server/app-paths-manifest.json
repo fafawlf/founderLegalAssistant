@@ -1,1 +1,4 @@
-{}
+{
+  "/botCardReview/page": "app/botCardReview/page.js",
+  "/api/analyze-bot-card/route": "app/api/analyze-bot-card/route.js"
+}

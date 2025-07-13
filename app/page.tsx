@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, MessageCircle, Shield, Zap, CheckCircle, Users } from 'lucide-react'
+import { FileText, MessageCircle, Shield, Zap, CheckCircle, Users, Target } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HomePage() {
@@ -24,11 +24,11 @@ export default function HomePage() {
           <div className="perspective-1000">
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6 animate-slide-up transform-style-3d hover:animate-tilt">
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                AI Legal
+                AI Document
               </span>
               <br />
               <span className="inline-block animate-float-3d">
-                Document Review
+                Review Platform
               </span>
             </h1>
           </div>
@@ -36,12 +36,12 @@ export default function HomePage() {
           {/* 3D Subtitle */}
           <div className="perspective-1000">
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 animate-slide-up [animation-delay:0.2s] transform-style-3d hover:animate-depth-float">
-              Founder-focused AI that protects your interests in every contract
+              AI-powered analysis for legal documents and product requirements
             </p>
           </div>
 
-          {/* 3D CTA Button */}
-          <div className="perspective-1000 animate-slide-up [animation-delay:0.4s]">
+          {/* 3D CTA Buttons */}
+          <div className="perspective-1000 animate-slide-up [animation-delay:0.4s] flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/legalDoc">
               <Button 
                 size="lg" 
@@ -57,8 +57,48 @@ export default function HomePage() {
                   e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
                 }}
               >
-                Start Reviewing Documents
-                <Zap className="ml-2 h-5 w-5 animate-bounce" />
+                Legal Document Review
+                <Shield className="ml-2 h-5 w-5 animate-bounce" />
+              </Button>
+            </Link>
+            <Link href="/productReview">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="px-8 py-4 text-lg font-semibold border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white shadow-lg transform-style-3d transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:rotate-3d animate-glow"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transform: 'translateZ(20px)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateZ(30px) rotateX(10deg) rotateY(10deg)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
+                }}
+              >
+                Product Review
+                <Target className="ml-2 h-5 w-5 animate-bounce" />
+              </Button>
+            </Link>
+            <Link href="/botCardReview">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="px-8 py-4 text-lg font-semibold border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white shadow-lg transform-style-3d transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:rotate-3d animate-glow"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  transform: 'translateZ(20px)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateZ(30px) rotateX(10deg) rotateY(10deg)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
+                }}
+              >
+                Bot Card Review
+                <MessageCircle className="ml-2 h-5 w-5 animate-bounce" />
               </Button>
             </Link>
           </div>
@@ -77,10 +117,10 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16 perspective-1000">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 animate-slide-up transform-style-3d hover:animate-tilt">
-              Why Choose Our AI?
+              Why Choose Our Platform?
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 animate-slide-up [animation-delay:0.2s] transform-style-3d hover:animate-depth-float">
-              Built specifically for founders who need to protect their interests
+              AI-powered analysis for both legal documents and product requirements
             </p>
           </div>
 
@@ -89,20 +129,20 @@ export default function HomePage() {
             {[
               {
                 icon: Shield,
-                title: "Founder-First Analysis",
-                description: "Our AI always stands on the founder's side, identifying clauses that could harm your interests",
+                title: "Legal Document Analysis",
+                description: "Founder-focused AI that identifies problematic clauses and protects your interests",
                 delay: "0s"
               },
               {
-                icon: FileText,
-                title: "Word-Like Interface",
-                description: "Familiar Microsoft Word-style interface with inline comments and suggestions",
+                icon: Target,
+                title: "Product Review",
+                description: "Brutally honest PRD analysis that cuts through fluff and focuses on user problems",
                 delay: "0.2s"
               },
               {
                 icon: MessageCircle,
                 title: "Interactive Chat",
-                description: "Ask questions about your document and get instant, founder-focused answers",
+                description: "Ask questions about your documents and get instant, expert-level answers",
                 delay: "0.4s"
               }
             ].map((feature, index) => (
@@ -121,8 +161,16 @@ export default function HomePage() {
                 }}
               >
                 <CardHeader className="text-center pb-4">
-                  <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-4 transform-style-3d group-hover:animate-rotate-3d">
-                    <feature.icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transform-style-3d group-hover:animate-rotate-3d ${
+                    feature.title === "Legal Document Analysis" ? "bg-blue-100 dark:bg-blue-900/30" :
+                    feature.title === "Product Review" ? "bg-orange-100 dark:bg-orange-900/30" :
+                    "bg-purple-100 dark:bg-purple-900/30"
+                  }`}>
+                    <feature.icon className={`w-8 h-8 ${
+                      feature.title === "Legal Document Analysis" ? "text-blue-600 dark:text-blue-400" :
+                      feature.title === "Product Review" ? "text-orange-600 dark:text-orange-400" :
+                      "text-purple-600 dark:text-purple-400"
+                    }`} />
                   </div>
                   <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white transform-style-3d group-hover:animate-float-3d">
                     {feature.title}
@@ -135,7 +183,11 @@ export default function HomePage() {
                 </CardContent>
                 
                 {/* 3D Glow Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
+                  feature.title === "Legal Document Analysis" ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10" :
+                  feature.title === "Product Review" ? "bg-gradient-to-r from-orange-500/10 to-red-500/10" :
+                  "bg-gradient-to-r from-purple-500/10 to-pink-500/10"
+                }`} />
               </Card>
             ))}
           </div>
@@ -146,20 +198,20 @@ export default function HomePage() {
       <section className="px-6 py-20 bg-gray-50 dark:bg-gray-900/50 transform-style-3d">
         <div className="max-w-4xl mx-auto text-center perspective-1000">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-12 animate-slide-up transform-style-3d hover:animate-tilt">
-            Protect Your Startup
+            Make Better Decisions
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             {[
               {
                 icon: CheckCircle,
-                title: "Save Legal Fees",
-                description: "Catch problematic clauses before expensive lawyer reviews"
+                title: "Save Time & Money",
+                description: "Catch issues early before expensive reviews and failed launches"
               },
               {
                 icon: Users,
-                title: "Founder-Focused",
-                description: "AI trained to maximize founder benefits in every negotiation"
+                title: "Expert-Level Analysis",
+                description: "AI trained on best practices from top lawyers and product managers"
               }
             ].map((benefit, index) => (
               <div 
@@ -197,32 +249,52 @@ export default function HomePage() {
       <section className="px-6 py-20 text-center transform-style-3d">
         <div className="max-w-4xl mx-auto perspective-1000">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 animate-slide-up transform-style-3d hover:animate-tilt">
-            Ready to Protect Your Interests?
+            Ready to Get Started?
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 animate-slide-up [animation-delay:0.2s] transform-style-3d hover:animate-depth-float">
-            Upload your legal document and get founder-focused AI analysis in seconds
+            Upload your document and get expert-level AI analysis in seconds
           </p>
-          <div className="animate-slide-up [animation-delay:0.4s] perspective-1000">
-            <Link href="/legalDoc">
-              <Button 
-                size="lg" 
-                className="px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg transform-style-3d transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-glow"
-                style={{
-                  transformStyle: 'preserve-3d',
-                  transform: 'translateZ(20px)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateZ(30px) rotateX(10deg) rotateY(10deg)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
-                }}
-              >
-                Get Started Now
-                <FileText className="ml-2 h-5 w-5 animate-bounce" />
-              </Button>
-            </Link>
-          </div>
+                      <div className="animate-slide-up [animation-delay:0.4s] perspective-1000 flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/legalDoc">
+                <Button 
+                  size="lg" 
+                  className="px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg transform-style-3d transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-glow"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: 'translateZ(20px)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateZ(30px) rotateX(10deg) rotateY(10deg)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
+                  }}
+                >
+                  Legal Documents
+                  <Shield className="ml-2 h-5 w-5 animate-bounce" />
+                </Button>
+              </Link>
+              <Link href="/productReview">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="px-8 py-4 text-lg font-semibold border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white shadow-lg transform-style-3d transition-all duration-300 hover:scale-105 hover:shadow-2xl animate-glow"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: 'translateZ(20px)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateZ(30px) rotateX(10deg) rotateY(10deg)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateZ(20px) rotateX(0deg) rotateY(0deg)'
+                  }}
+                >
+                  Product Reviews
+                  <Target className="ml-2 h-5 w-5 animate-bounce" />
+                </Button>
+              </Link>
+            </div>
         </div>
       </section>
 

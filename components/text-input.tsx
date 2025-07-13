@@ -8,9 +8,10 @@ interface TextInputProps {
   onSubmit: (text: string, wordComments?: import('@/types').WordComment[]) => void
   isProcessing: boolean
   onStartAnalysis?: (text?: string) => void
+  placeholder?: string
 }
 
-export function TextInput({ onSubmit, isProcessing, onStartAnalysis }: TextInputProps) {
+export function TextInput({ onSubmit, isProcessing, onStartAnalysis, placeholder = "Paste your legal document text here..." }: TextInputProps) {
   const [text, setText] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
 
@@ -48,7 +49,7 @@ export function TextInput({ onSubmit, isProcessing, onStartAnalysis }: TextInput
               setText(e.target.value)
               setIsSubmitted(false)
             }}
-            placeholder="Paste your legal document text here..."
+            placeholder={placeholder}
             className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all duration-300"
           />
           {text && !isSubmitted && (

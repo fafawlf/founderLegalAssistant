@@ -13,6 +13,36 @@ export interface LegalComment {
   }
 }
 
+// Bot Card Comment interface
+export interface BotCardComment {
+  comment_id: string
+  source_section: string
+  context_before: string
+  original_text: string
+  context_after: string
+  comment_type: 'Content Strength' | 'Content Issue' | 'LLM Issue'
+  comment_title: string
+  comment_details: string
+  recommendation: string
+}
+
+// Bot Card Analysis Summary interface
+export interface BotCardAnalysisSummary {
+  overall_assessment: string
+  target_audience_fit: string
+  discoverability_and_packaging: string
+  narrative_potential_and_originality: string
+  key_strengths_summary: string
+  key_weaknesses_summary: string
+}
+
+// Bot Card Analysis Result interface
+export interface BotCardAnalysisResult {
+  card_id: string
+  analysis_summary: BotCardAnalysisSummary
+  locatable_comments: BotCardComment[]
+}
+
 // Comment interface for WordLikeEditor component
 export interface Comment {
   id: string
@@ -82,149 +112,83 @@ export function convertToWordLikeComment(legalComment: LegalComment, fullText: s
   console.log(`Comment ${legalComment.comment_id} positioned at ${start}-${end}`)
 
   const marketStandardText = legalComment.market_standard 
-    ? `\n\nIs this market standard: ${legalComment.market_standard.is_standard}\n${legalComment.market_standard.reasoning}`
+    ? `\\n\\nIs this market standard: ${legalComment.market_standard.is_standard}\\n${legalComment.market_standard.reasoning}`
     : ''
 
   const result = {
     id: legalComment.comment_id,
-    text: `${legalComment.comment_title}\n\n${legalComment.comment_details}\n\nRecommendation: ${legalComment.recommendation}${marketStandardText}`,
-    author: 'AI Legal Assistant',
+    text: `${legalComment.comment_title}\\n\\n${legalComment.comment_details}\\n\\nRecommendation: ${legalComment.recommendation}${marketStandardText}`,
+    author: 'AI Legal Advisor',
     start,
     end,
-    severity: severityMap[legalComment.severity]
+    severity: severityMap[legalComment.severity] || 'medium'
   }
-  
+
   console.log('Converted comment:', result)
+  return result
+}
+
+// Utility function to convert BotCardComment to Comment for WordLikeEditor
+export function convertBotCardCommentToWordLike(botCardComment: BotCardComment, fullText: string): Comment {
+  console.log('Converting BotCardComment to WordLikeComment:', botCardComment.comment_id)
+  
+  const severityMap: Record<BotCardComment['comment_type'], Comment['severity']> = {
+    'Content Strength': 'low',
+    'Content Issue': 'medium', 
+    'LLM Issue': 'high'
+  }
+
+  // Calculate start and end positions using context-based matching
+  const { start, end } = findBotCardTextPosition(botCardComment, fullText)
+  console.log(`Bot Card Comment ${botCardComment.comment_id} positioned at ${start}-${end}`)
+
+  const result = {
+    id: botCardComment.comment_id,
+    text: `[${botCardComment.source_section}] ${botCardComment.comment_title}\\n\\n${botCardComment.comment_details}\\n\\nRecommendation: ${botCardComment.recommendation}`,
+    author: 'AI Content Editor',
+    start,
+    end,
+    severity: severityMap[botCardComment.comment_type] || 'medium'
+  }
+
+  console.log('Converted bot card comment:', result)
   return result
 }
 
 // Helper function to find text position using context matching
 function findTextPosition(comment: LegalComment, fullText: string): { start: number, end: number } {
-  const { context_before, original_text, context_after } = comment
-  
-  console.log('Finding position for comment:', comment.comment_id)
-  console.log('Context before:', JSON.stringify(context_before))
-  console.log('Original text:', JSON.stringify(original_text))
-  console.log('Context after:', JSON.stringify(context_after))
-  
   // Normalize whitespace for better matching
   const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim()
+  
   const normalizedFullText = normalizeText(fullText)
+  const normalizedOriginalText = normalizeText(comment.original_text)
   
-  // Try different search strategies in order of reliability
+  // Find the position of the original text
+  const start = normalizedFullText.indexOf(normalizedOriginalText)
   
-  // Strategy 1: Full context match (most reliable)
-  if (context_before && context_after) {
-    const fullPattern = `${context_before}${original_text}${context_after}`
-    const normalizedPattern = normalizeText(fullPattern)
-    
-    let fullMatch = fullText.indexOf(fullPattern)
-    if (fullMatch === -1) {
-      // Try with normalized whitespace
-      fullMatch = normalizedFullText.indexOf(normalizedPattern)
-      if (fullMatch !== -1) {
-        // Convert back to original text position
-        const beforeNormalized = normalizeText(context_before)
-        const beforeMatch = normalizedFullText.indexOf(beforeNormalized)
-        if (beforeMatch !== -1) {
-          fullMatch = beforeMatch
-        }
-      }
-    }
-    
-    if (fullMatch !== -1) {
-      const start = fullMatch + context_before.length
-      console.log('✅ Full context match found at position:', start)
-      return { start, end: start + original_text.length }
-    }
+  if (start === -1) {
+    console.warn(`Could not find text position for comment ${comment.comment_id}`)
+    return { start: 0, end: Math.min(100, fullText.length) }
   }
   
-  // Strategy 2: Before context + original text
-  if (context_before) {
-    const beforePattern = `${context_before}${original_text}`
-    let beforeMatch = fullText.indexOf(beforePattern)
-    
-    if (beforeMatch === -1) {
-      // Try with normalized whitespace
-      const normalizedPattern = normalizeText(beforePattern)
-      beforeMatch = normalizedFullText.indexOf(normalizedPattern)
-    }
-    
-    if (beforeMatch !== -1) {
-      const start = beforeMatch + context_before.length
-      console.log('✅ Before context match found at position:', start)
-      return { start, end: start + original_text.length }
-    }
+  return { start, end: start + normalizedOriginalText.length }
+}
+
+// Helper function to find text position for bot card comments
+function findBotCardTextPosition(comment: BotCardComment, fullText: string): { start: number, end: number } {
+  // Normalize whitespace for better matching
+  const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim()
+  
+  const normalizedFullText = normalizeText(fullText)
+  const normalizedOriginalText = normalizeText(comment.original_text)
+  
+  // Find the position of the original text
+  const start = normalizedFullText.indexOf(normalizedOriginalText)
+  
+  if (start === -1) {
+    console.warn(`Could not find text position for bot card comment ${comment.comment_id}`)
+    return { start: 0, end: Math.min(100, fullText.length) }
   }
   
-  // Strategy 3: Original text + after context
-  if (context_after) {
-    const afterPattern = `${original_text}${context_after}`
-    let afterMatch = fullText.indexOf(afterPattern)
-    
-    if (afterMatch === -1) {
-      // Try with normalized whitespace
-      const normalizedPattern = normalizeText(afterPattern)
-      afterMatch = normalizedFullText.indexOf(normalizedPattern)
-    }
-    
-    if (afterMatch !== -1) {
-      console.log('✅ After context match found at position:', afterMatch)
-      return { start: afterMatch, end: afterMatch + original_text.length }
-    }
-  }
-  
-  // Strategy 4: Exact text match (fallback)
-  let exactMatch = fullText.indexOf(original_text)
-  if (exactMatch === -1) {
-    // Try with normalized whitespace
-    const normalizedOriginal = normalizeText(original_text)
-    exactMatch = normalizedFullText.indexOf(normalizedOriginal)
-  }
-  
-  if (exactMatch !== -1) {
-    console.log('✅ Exact text match found at position:', exactMatch)
-    return { start: exactMatch, end: exactMatch + original_text.length }
-  }
-  
-  // Strategy 5: Fuzzy matching for similar text
-  const words = original_text.trim().split(/\s+/)
-  if (words.length > 2) {
-    // Try to find a substring with most of the words
-    const firstHalf = words.slice(0, Math.ceil(words.length / 2)).join(' ')
-    const secondHalf = words.slice(Math.floor(words.length / 2)).join(' ')
-    
-    let fuzzyMatch = fullText.indexOf(firstHalf)
-    if (fuzzyMatch === -1) {
-      fuzzyMatch = fullText.indexOf(secondHalf)
-    }
-    
-    if (fuzzyMatch !== -1) {
-      console.log('✅ Fuzzy match found at position:', fuzzyMatch)
-      return { start: fuzzyMatch, end: fuzzyMatch + original_text.length }
-    }
-  }
-  
-  // Strategy 6: Word-by-word search (last resort)
-  const firstWord = words[0]
-  if (firstWord && firstWord.length > 3) {
-    const wordMatch = fullText.indexOf(firstWord)
-    if (wordMatch !== -1) {
-      console.log('✅ First word match found at position:', wordMatch)
-      return { start: wordMatch, end: wordMatch + original_text.length }
-    }
-  }
-  
-  // If all else fails, distribute comments evenly instead of position 0
-  console.warn('❌ Could not find text position for comment:', comment.comment_id)
-  console.warn('Falling back to distributed positioning')
-  
-  // Use a hash of the comment ID to create consistent but distributed positioning
-  const hash = comment.comment_id.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0)
-    return a & a
-  }, 0)
-  const fallbackPosition = Math.abs(hash) % Math.max(1, Math.floor(fullText.length / 4))
-  
-  return { start: fallbackPosition, end: fallbackPosition + original_text.length }
+  return { start, end: start + normalizedOriginalText.length }
 } 

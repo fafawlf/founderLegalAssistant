@@ -57,7 +57,7 @@ Please respond to the founder's question in a helpful, conversational manner. Be
     const userPrompt = `Founder's question: ${message}`
     
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-pro",
       contents: `${systemPrompt}\n\n${userPrompt}`,
     })
     
