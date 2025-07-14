@@ -43,6 +43,50 @@ export interface BotCardAnalysisResult {
   locatable_comments: BotCardComment[]
 }
 
+// Bot Card Quantitative Scores interfaces
+export interface ScoreItem {
+  score: number
+  comment: string
+}
+
+export interface SectionScores {
+  title_and_description: {
+    title: ScoreItem
+    description: ScoreItem
+  }
+  welcome_message: {
+    character_world_building: ScoreItem
+    hook_and_attraction: ScoreItem
+    guidance: ScoreItem
+  }
+  bot_prompt: {
+    character_story_arc: ScoreItem
+    setting_consistency: ScoreItem
+    long_term_potential: ScoreItem
+  }
+  interaction_test_prediction: {
+    character_stability: ScoreItem
+    plot_driving_force: ScoreItem
+    emotional_resonance: ScoreItem
+  }
+}
+
+export interface AdjustmentScores {
+  originality_bonus: ScoreItem
+  technical_deduction: ScoreItem
+}
+
+export interface QuantitativeScores {
+  sections: SectionScores
+  adjustments: AdjustmentScores
+  final_score: number
+}
+
+export interface BotCardQuantitativeResult {
+  card_id: string
+  quantitative_scores: QuantitativeScores
+}
+
 // Comment interface for WordLikeEditor component
 export interface Comment {
   id: string

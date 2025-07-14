@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { WordLikeEditor } from '@/components/word-like-editor'
 import { ChatWindow } from '@/components/chat-window'
-import type { BotCardAnalysisResult, BotCardAnalysisSummary, BotCardComment, Comment, WordComment } from '@/types'
+import type { BotCardAnalysisResult, BotCardAnalysisSummary, BotCardComment, Comment, WordComment, BotCardQuantitativeResult } from '@/types'
 import { convertBotCardCommentToWordLike } from '@/types'
 
 export default function BotCardReviewPage() {
@@ -18,7 +18,9 @@ export default function BotCardReviewPage() {
   const [welcomeMessage, setWelcomeMessage] = useState('')
   const [botPrompt, setBotPrompt] = useState('')
   const [analysisResults, setAnalysisResults] = useState<BotCardAnalysisResult | null>(null)
+  const [quantitativeResults, setQuantitativeResults] = useState<BotCardQuantitativeResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isQuantifying, setIsQuantifying] = useState(false)
   const [wordComments, setWordComments] = useState<WordComment[]>([])
 
   const handleAnalyze = async () => {
@@ -92,6 +94,57 @@ Bot Prompt: ${botPrompt}`
 
   const handleWordCommentDelete = (commentId: string) => {
     setWordComments(prev => prev.filter(comment => comment.id !== commentId))
+  }
+
+  const handleQuantify = async () => {
+    if (!analysisResults) {
+      alert('Please complete the analysis first before quantifying')
+      return
+    }
+
+    setIsQuantifying(true)
+    setQuantitativeResults(null)
+
+    try {
+      const originalContent = `Title: ${title}
+
+Description: ${description}
+
+Welcome Message: ${welcomeMessage}
+
+Bot Prompt: ${botPrompt}`
+
+      console.log('Starting bot card quantification...', { 
+        contentLength: originalContent.length,
+        timestamp: new Date().toISOString()
+      })
+
+      const response = await fetch('/api/quantify-bot-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          originalContent,
+          analysisResult: analysisResults
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to quantify bot card')
+      }
+
+      console.log('Quantification completed successfully:', data.data)
+      setQuantitativeResults(data.data)
+    } catch (error) {
+      console.error('Error quantifying bot card:', error)
+      alert(`Failed to quantify bot card: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
+    } finally {
+      console.log('Quantification process completed')
+      setIsQuantifying(false)
+    }
   }
 
   // 组合完整的文档文本用于WordLikeEditor
@@ -284,6 +337,244 @@ Bot Prompt: ${botPrompt}`
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quantification Section */}
+          {analysisResults && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  📊 Quantitative Scoring
+                </CardTitle>
+                <CardDescription>
+                  Generate detailed numerical scores based on the analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center gap-4">
+                  <Button 
+                    onClick={handleQuantify}
+                    disabled={isQuantifying}
+                    size="lg"
+                    className="px-8 min-w-[200px]"
+                    variant="outline"
+                  >
+                    {isQuantifying ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        Quantifying...
+                      </div>
+                    ) : (
+                      'Generate Quantitative Scores'
+                    )}
+                  </Button>
+                  
+                  {isQuantifying && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                      <p>🔢 AI is calculating numerical scores...</p>
+                      <p className="text-xs mt-1">This usually takes 30-60 seconds</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quantitative Results Display */}
+                {quantitativeResults && (
+                  <div className="mt-8 space-y-6">
+                    {/* Final Score */}
+                    <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border">
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Final Score</h3>
+                      <div className="text-6xl font-bold text-blue-600 dark:text-blue-400">
+                        {quantitativeResults.quantitative_scores.final_score}
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300 mt-2">out of 100</p>
+                    </div>
+
+                    {/* Section Scores */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Title & Description */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Title & Description</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Title</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.title_and_description.title.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.title_and_description.title.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Description</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.title_and_description.description.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.title_and_description.description.score}/10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Welcome Message */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Welcome Message</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Character World Building</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.welcome_message.character_world_building.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.welcome_message.character_world_building.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Hook & Attraction</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.welcome_message.hook_and_attraction.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.welcome_message.hook_and_attraction.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Guidance</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.welcome_message.guidance.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.welcome_message.guidance.score}/10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bot Prompt */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Bot Prompt</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Character Story Arc</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.bot_prompt.character_story_arc.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.bot_prompt.character_story_arc.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Setting Consistency</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.bot_prompt.setting_consistency.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.bot_prompt.setting_consistency.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Long Term Potential</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.bot_prompt.long_term_potential.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.bot_prompt.long_term_potential.score}/10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Interaction Test Prediction */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Interaction Test Prediction</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Character Stability</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.character_stability.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.character_stability.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Plot Driving Force</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.plot_driving_force.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.plot_driving_force.score}/10
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Emotional Resonance</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.emotional_resonance.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                              {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.emotional_resonance.score}/10
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Adjustments */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Adjustments</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Originality Bonus</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.adjustments.originality_bonus.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-sm font-medium">
+                              +{quantitativeResults.quantitative_scores.adjustments.originality_bonus.score}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Technical Deduction</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {quantitativeResults.quantitative_scores.adjustments.technical_deduction.comment}
+                              </p>
+                            </div>
+                            <span className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm font-medium">
+                              -{quantitativeResults.quantitative_scores.adjustments.technical_deduction.score}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
