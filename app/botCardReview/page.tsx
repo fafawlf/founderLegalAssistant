@@ -157,26 +157,26 @@ Welcome Message: ${welcomeMessage}
 Bot Prompt: ${botPrompt}`
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900">
+    <div className="min-h-screen bg-gray-900" style={{ backgroundColor: '#1a1a1a' }}>
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              🤖 AI Bot Card Review
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-white mb-3">
+              🤖 Bot Card Review
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Get detailed feedback on your AI character bot cards to improve content quality and AI performance
+            <p className="text-orange-400 max-w-3xl mx-auto">
+              Analyze and improve your AI character cards with detailed feedback
             </p>
           </div>
 
           {/* Input Section */}
-          <Card>
+          <Card className="border-gray-700 bg-gray-800/50 backdrop-blur-sm shadow-lg" style={{ backgroundColor: '#2a2a2a', borderColor: '#404040' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 📝 Bot Card Content
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-orange-400">
                 Enter your bot card information below
               </CardDescription>
             </CardHeader>
@@ -184,47 +184,55 @@ Bot Prompt: ${botPrompt}`
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Title</Label>
+                    <Label htmlFor="title" className="text-gray-300">Title</Label>
                     <Input
                       id="title"
                       placeholder="Enter bot character title..."
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
+                      style={{ backgroundColor: '#333333', borderColor: '#555555' }}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description" className="text-gray-300">Description</Label>
                     <Textarea
                       id="description"
                       placeholder="Enter bot character description..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={6}
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 resize-none"
+                      style={{ backgroundColor: '#333333', borderColor: '#555555' }}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                    <Label htmlFor="welcomeMessage" className="text-gray-300">Welcome Message</Label>
                     <Textarea
                       id="welcomeMessage"
                       placeholder="Enter the welcome message..."
                       value={welcomeMessage}
                       onChange={(e) => setWelcomeMessage(e.target.value)}
                       rows={4}
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 resize-none"
+                      style={{ backgroundColor: '#333333', borderColor: '#555555' }}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="botPrompt">Bot Prompt</Label>
+                    <Label htmlFor="botPrompt" className="text-gray-300">Bot Prompt</Label>
                     <Textarea
                       id="botPrompt"
                       placeholder="Enter the bot system prompt..."
                       value={botPrompt}
                       onChange={(e) => setBotPrompt(e.target.value)}
                       rows={6}
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 resize-none"
+                      style={{ backgroundColor: '#333333', borderColor: '#555555' }}
                     />
                   </div>
                 </div>
@@ -235,7 +243,8 @@ Bot Prompt: ${botPrompt}`
                   onClick={handleAnalyze}
                   disabled={isAnalyzing}
                   size="lg"
-                  className="px-8 min-w-[200px]"
+                  className="px-8 min-w-[200px] bg-red-800 hover:bg-red-900 text-white border-red-700 shadow-lg"
+                  style={{ backgroundColor: '#991b1b', borderColor: '#b91c1c' }}
                 >
                   {isAnalyzing ? (
                     <div className="flex items-center gap-2">
@@ -248,7 +257,7 @@ Bot Prompt: ${botPrompt}`
                 </Button>
                 
                 {isAnalyzing && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                  <div className="text-sm text-orange-400 text-center">
                     <p>🤖 AI is analyzing your bot card...</p>
                     <p className="text-xs mt-1">This usually takes 30-60 seconds</p>
                   </div>
@@ -259,18 +268,18 @@ Bot Prompt: ${botPrompt}`
 
           {/* Analysis Results Summary */}
           {analysisResults && (
-            <Card>
+            <Card className="border-gray-700 bg-gray-800/50 backdrop-blur-sm shadow-lg" style={{ backgroundColor: '#2a2a2a', borderColor: '#404040' }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   📊 Analysis Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   {/* Overall Assessment */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Overall Assessment</h3>
-                    <p className="text-gray-700 dark:text-gray-300">
+                  <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                    <h3 className="font-semibold text-white mb-2">Overall Assessment</h3>
+                    <p className="text-white leading-relaxed">
                       {analysisResults.analysis_summary.overall_assessment}
                     </p>
                   </div>
@@ -278,39 +287,39 @@ Bot Prompt: ${botPrompt}`
                   {/* Two-column layout for detailed analysis */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Target Audience Fit</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                        <h4 className="font-medium text-orange-400 mb-2">Target Audience Fit</h4>
+                        <p className="text-sm text-white leading-relaxed">
                           {analysisResults.analysis_summary.target_audience_fit}
                         </p>
                       </div>
                       
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Discoverability & Packaging</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                        <h4 className="font-medium text-orange-400 mb-2">Discoverability & Packaging</h4>
+                        <p className="text-sm text-white leading-relaxed">
                           {analysisResults.analysis_summary.discoverability_and_packaging}
                         </p>
                       </div>
 
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Key Strengths</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                        <h4 className="font-medium text-orange-400 mb-2">Key Strengths</h4>
+                        <p className="text-sm text-white leading-relaxed">
                           {analysisResults.analysis_summary.key_strengths_summary}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Narrative Potential & Originality</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                        <h4 className="font-medium text-orange-400 mb-2">Narrative Potential & Originality</h4>
+                        <p className="text-sm text-white leading-relaxed">
                           {analysisResults.analysis_summary.narrative_potential_and_originality}
                         </p>
                       </div>
 
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Key Weaknesses</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                        <h4 className="font-medium text-orange-400 mb-2">Key Weaknesses</h4>
+                        <p className="text-sm text-white leading-relaxed">
                           {analysisResults.analysis_summary.key_weaknesses_summary}
                         </p>
                       </div>
@@ -318,18 +327,17 @@ Bot Prompt: ${botPrompt}`
                   </div>
 
                   {/* Comment Type Badges */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Comment Types</h4>
+                  <div className="bg-gray-700/20 rounded-lg p-3 border border-gray-600/50" style={{ backgroundColor: '#3a3a3a', borderColor: '#555555' }}>
+                    <h4 className="font-medium text-white mb-2">Comment Types</h4>
                     <div className="flex flex-wrap gap-2">
                       {analysisResults.locatable_comments.map((comment) => (
                         <Badge 
                           key={comment.comment_id}
-                          variant={
-                            comment.comment_type === 'LLM Issue' ? 'destructive' :
-                            comment.comment_type === 'Content Issue' ? 'default' :
-                            'secondary'
-                          }
-                          className="text-sm"
+                          className={`text-sm ${
+                            comment.comment_type === 'LLM Issue' ? 'bg-red-600 text-white' :
+                            comment.comment_type === 'Content Issue' ? 'bg-orange-600 text-white' :
+                            'bg-green-600 text-white'
+                          }`}
                         >
                           {comment.comment_type}
                         </Badge>
@@ -343,12 +351,12 @@ Bot Prompt: ${botPrompt}`
 
           {/* Quantification Section */}
           {analysisResults && (
-            <Card>
+            <Card className="border-gray-700 bg-gray-800/50 backdrop-blur-sm shadow-lg" style={{ backgroundColor: '#2a2a2a', borderColor: '#404040' }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   📊 Quantitative Scoring
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-orange-400">
                   Generate detailed numerical scores based on the analysis
                 </CardDescription>
               </CardHeader>
@@ -358,8 +366,8 @@ Bot Prompt: ${botPrompt}`
                     onClick={handleQuantify}
                     disabled={isQuantifying}
                     size="lg"
-                    className="px-8 min-w-[200px]"
-                    variant="outline"
+                    className="px-8 min-w-[200px] bg-red-800 hover:bg-red-900 text-white border-red-700 shadow-lg"
+                    style={{ backgroundColor: '#991b1b', borderColor: '#b91c1c' }}
                   >
                     {isQuantifying ? (
                       <div className="flex items-center gap-2">
@@ -372,7 +380,7 @@ Bot Prompt: ${botPrompt}`
                   </Button>
                   
                   {isQuantifying && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    <div className="text-sm text-orange-400 text-center">
                       <p>🔢 AI is calculating numerical scores...</p>
                       <p className="text-xs mt-1">This usually takes 30-60 seconds</p>
                     </div>
@@ -383,79 +391,79 @@ Bot Prompt: ${botPrompt}`
                 {quantitativeResults && (
                   <div className="mt-8 space-y-6">
                     {/* Final Score */}
-                    <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border">
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Final Score</h3>
-                      <div className="text-6xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="text-center p-6 bg-gradient-to-r from-red-900/30 to-red-800/30 rounded-lg border border-red-500/30 shadow-lg" style={{ backgroundColor: '#7f1d1d', borderColor: '#dc2626' }}>
+                      <h3 className="text-2xl font-bold text-white mb-2">Final Score</h3>
+                      <div className="text-6xl font-bold text-red-300">
                         {quantitativeResults.quantitative_scores.final_score}
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mt-2">out of 100</p>
+                      <p className="text-orange-400 mt-2">out of 100</p>
                     </div>
 
                     {/* Section Scores */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Title & Description */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Title & Description</h4>
+                      <div className="space-y-4 bg-gray-700/20 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                        <h4 className="font-semibold text-white border-b border-gray-600 pb-2">Title & Description</h4>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Title</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Title</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.title_and_description.title.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                              {quantitativeResults.quantitative_scores.sections.title_and_description.title.score}/10
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
+                              {quantitativeResults.quantitative_scores.sections.title_and_description.title.score}/5
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Description</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Description</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.title_and_description.description.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
-                              {quantitativeResults.quantitative_scores.sections.title_and_description.description.score}/10
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
+                              {quantitativeResults.quantitative_scores.sections.title_and_description.description.score}/5
                             </span>
                           </div>
                         </div>
                       </div>
 
                       {/* Welcome Message */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Welcome Message</h4>
+                      <div className="space-y-4 bg-gray-700/20 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                        <h4 className="font-semibold text-white border-b border-gray-600 pb-2">Welcome Message</h4>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Character World Building</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Character World Building</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.welcome_message.character_world_building.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.welcome_message.character_world_building.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Hook & Attraction</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Hook & Attraction</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.welcome_message.hook_and_attraction.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.welcome_message.hook_and_attraction.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Guidance</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Guidance</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.welcome_message.guidance.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.welcome_message.guidance.score}/10
                             </span>
                           </div>
@@ -463,39 +471,39 @@ Bot Prompt: ${botPrompt}`
                       </div>
 
                       {/* Bot Prompt */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Bot Prompt</h4>
+                      <div className="space-y-4 bg-gray-700/20 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                        <h4 className="font-semibold text-white border-b border-gray-600 pb-2">Bot Prompt</h4>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Character Story Arc</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Character Story Arc</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.bot_prompt.character_story_arc.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.bot_prompt.character_story_arc.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Setting Consistency</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Setting Consistency</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.bot_prompt.setting_consistency.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.bot_prompt.setting_consistency.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Long Term Potential</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Long Term Potential</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.bot_prompt.long_term_potential.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.bot_prompt.long_term_potential.score}/10
                             </span>
                           </div>
@@ -503,39 +511,39 @@ Bot Prompt: ${botPrompt}`
                       </div>
 
                       {/* Interaction Test Prediction */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Interaction Test Prediction</h4>
+                      <div className="space-y-4 bg-gray-700/20 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                        <h4 className="font-semibold text-white border-b border-gray-600 pb-2">Interaction Test Prediction</h4>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Character Stability</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Character Stability</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.character_stability.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.character_stability.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Plot Driving Force</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Plot Driving Force</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.plot_driving_force.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.plot_driving_force.score}/10
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Emotional Resonance</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Emotional Resonance</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.emotional_resonance.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 rounded text-sm font-medium text-white">
                               {quantitativeResults.quantitative_scores.sections.interaction_test_prediction.emotional_resonance.score}/10
                             </span>
                           </div>
@@ -545,28 +553,28 @@ Bot Prompt: ${botPrompt}`
 
                     {/* Adjustments */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white border-b pb-2">Adjustments</h4>
+                      <div className="space-y-4 bg-gray-700/20 rounded-lg p-4 border border-gray-600" style={{ backgroundColor: '#333333', borderColor: '#555555' }}>
+                        <h4 className="font-semibold text-white border-b border-gray-600 pb-2">Adjustments</h4>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Originality Bonus</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Originality Bonus</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.adjustments.originality_bonus.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-green-800 text-green-300 rounded text-sm font-medium">
                               +{quantitativeResults.quantitative_scores.adjustments.originality_bonus.score}
                             </span>
                           </div>
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start bg-gray-600/30 rounded p-3" style={{ backgroundColor: '#3a3a3a' }}>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">Technical Deduction</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                              <p className="font-medium text-sm text-orange-400">Technical Deduction</p>
+                              <p className="text-xs text-white mt-1">
                                 {quantitativeResults.quantitative_scores.adjustments.technical_deduction.comment}
                               </p>
                             </div>
-                            <span className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm font-medium">
+                            <span className="ml-2 px-2 py-1 bg-red-800 text-red-300 rounded text-sm font-medium">
                               -{quantitativeResults.quantitative_scores.adjustments.technical_deduction.score}
                             </span>
                           </div>
@@ -580,12 +588,12 @@ Bot Prompt: ${botPrompt}`
           )}
 
           {/* Interactive Review Section */}
-          <Card>
+          <Card className="border-gray-700 bg-gray-800/50 backdrop-blur-sm shadow-lg" style={{ backgroundColor: '#2a2a2a', borderColor: '#404040' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 ✏️ Interactive Review
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-orange-400">
                 Review and add comments to your bot card content
               </CardDescription>
             </CardHeader>
@@ -619,7 +627,7 @@ Bot Prompt: ${botPrompt}`
               )}
 
               {/* Document Editor */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+              <div className="bg-gray-800 rounded-lg border border-gray-600 p-1" style={{ backgroundColor: '#1a1a1a', borderColor: '#555555' }}>
                 <WordLikeEditor
                   documentText={documentText}
                   comments={[

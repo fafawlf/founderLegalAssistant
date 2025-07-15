@@ -134,14 +134,14 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
       >
         <Button
           onClick={() => setIsOpen(true)}
-          className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-2xl transition-all duration-300 hover:scale-110"
+          className="w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white shadow-2xl transition-all duration-300 hover:scale-110 p-0 overflow-hidden"
         >
-          <div className="relative w-8 h-8 overflow-hidden rounded-full">
+          <div className="relative w-full h-full overflow-hidden rounded-full">
             <Image
               src="/chat-icon.jpeg"
               alt="Chat"
               fill
-              className="object-cover object-center scale-150"
+              className="object-cover object-center"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 e.currentTarget.nextElementSibling?.classList.remove('hidden')
@@ -189,13 +189,13 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
                 src="/chat-icon.jpeg"
                 alt="Chat"
                 fill
-                className="object-cover object-center scale-150"
+                className="object-cover object-center"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
                   e.currentTarget.nextElementSibling?.classList.remove('hidden')
                 }}
               />
-              <MessageCircle className="w-8 h-8 text-blue-600 dark:text-blue-400 hidden" />
+              <MessageCircle className="w-8 h-8 text-gray-600 dark:text-gray-400 hidden" />
             </div>
             <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
               Chat with Document
@@ -244,7 +244,7 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
                     <div
                       className={`max-w-[80%] p-3 rounded-2xl ${
                         message.role === 'user'
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-gray-800 text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                       }`}
                     >
@@ -278,14 +278,14 @@ export function ChatWindow({ documentContent }: ChatWindowProps) {
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about your document..."
-                  className="flex-1 resize-none border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
+                  className="flex-1 resize-none border-gray-300 dark:border-gray-600 focus:border-gray-500 dark:focus:border-gray-400"
                   rows={inputRows}
                   disabled={isLoading}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

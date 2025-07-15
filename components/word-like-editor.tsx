@@ -9,9 +9,9 @@ interface WordLikeEditorProps {
 }
 
 function getSeverityColor(severity: Comment['severity']) {
-  if (severity === 'high') return { bg: 'bg-red-50', border: 'border-red-500', text: 'text-red-800', badge: 'bg-red-100 text-red-800' }
-  if (severity === 'medium') return { bg: 'bg-yellow-50', border: 'border-yellow-500', text: 'text-yellow-800', badge: 'bg-yellow-100 text-yellow-800' }
-  return { bg: 'bg-blue-50', border: 'border-blue-500', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800' }
+  if (severity === 'high') return { bg: 'bg-red-900/50', border: 'border-red-500', text: 'text-red-200', badge: 'bg-red-900 text-red-200' }
+  if (severity === 'medium') return { bg: 'bg-yellow-900/50', border: 'border-yellow-500', text: 'text-yellow-200', badge: 'bg-yellow-900 text-yellow-200' }
+  return { bg: 'bg-blue-900/50', border: 'border-blue-500', text: 'text-blue-200', badge: 'bg-blue-900 text-blue-200' }
 }
 
 function parseCommentText(text: string | undefined, author?: string) {
@@ -207,24 +207,24 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
   }
 
   return (
-    <div className="flex bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden min-h-[600px]">
+    <div className="flex bg-gray-800/90 backdrop-blur-xl border border-gray-600 rounded-2xl shadow-2xl overflow-hidden min-h-[600px]">
       {/* Document Content */}
       <div 
-        className="flex-1 p-8 overflow-y-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-r border-gray-200 dark:border-gray-700" 
+        className="flex-1 p-8 overflow-y-auto bg-gray-800/80 backdrop-blur-sm border-r border-gray-600" 
         ref={documentRef}
       >
-        <div className="max-w-none text-base leading-relaxed text-gray-900 dark:text-white font-normal">
+        <div className="max-w-none text-base leading-relaxed text-white font-normal">
           {segments}
         </div>
       </div>
 
       {/* Comments Column */}
-      <div className="w-80 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-sm relative overflow-y-auto">
+      <div className="w-80 bg-gray-700/90 backdrop-blur-sm relative overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 p-4 border-b bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-sm z-30">
-          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <div className="sticky top-0 p-4 border-b bg-gray-700/90 backdrop-blur-sm z-30">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <div className="w-8 h-8 bg-red-900/30 rounded-lg flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-red-400" />
             </div>
             Comments ({comments.length})
             {comments.length > 0 && (
@@ -257,8 +257,8 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                 <div
                   className={`mx-3 my-2 p-4 rounded-xl border-l-4 cursor-pointer transition-all duration-300 ${
                     isExpanded
-                      ? `${colors.bg} ${colors.border} ring-2 ring-gray-400 dark:ring-gray-500 shadow-xl bg-white/95 dark:bg-gray-800/95 scale-[1.02]`
-                      : 'bg-white/80 dark:bg-gray-800/80 border-gray-300 dark:border-gray-600 hover:bg-gray-50/80 dark:hover:bg-gray-700/80 hover:shadow-lg shadow-md'
+                      ? `${colors.bg} ${colors.border} ring-2 ring-gray-500 shadow-xl bg-gray-800/95 scale-[1.02]`
+                      : 'bg-gray-800/80 border-gray-600 hover:bg-gray-700/80 hover:shadow-lg shadow-md'
                   } hover:scale-[1.01]`}
                   onClick={(e) => {
                     e.preventDefault()
@@ -272,14 +272,14 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                        comment.severity === 'high' ? 'Must Change' : 
                        comment.severity === 'medium' ? 'Recommend Change' : 'Negotiable'}
                     </Badge>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                    <span className="text-xs text-gray-400">#{index + 1}</span>
                   </div>
                   
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">
+                    <div className="text-sm font-medium text-white truncate pr-2">
                       {title}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    <div className="flex items-center gap-1 text-xs text-gray-400 flex-shrink-0">
                       {isExpanded ? (
                         <>
                           <ChevronDown className="w-4 h-4" />
@@ -297,12 +297,12 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
                     isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                   }`}>
-                    <div className="max-h-80 overflow-y-auto pr-2 scrollbar-w-2 scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500 scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
+                    <div className="max-h-80 overflow-y-auto pr-2 scrollbar-w-2 scrollbar-track-gray-800 scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-500 scrollbar-thumb-rounded-full scrollbar-track-rounded-full">
                       {isWordComment ? (
                         <div className="space-y-3">
                           <div>
-                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Comment:</div>
-                            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                            <div className="text-xs font-medium text-gray-300 mb-1">Comment:</div>
+                            <div className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
                               {issue}
                             </div>
                           </div>
@@ -310,23 +310,23 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                       ) : (
                         <div className="space-y-4">
                           <div>
-                            <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">Issue:</div>
-                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                            <div className="text-xs font-medium text-blue-300 mb-2">Issue:</div>
+                            <div className="text-sm text-gray-200 leading-relaxed">
                               {issue}
                             </div>
                           </div>
                           
                           <div>
-                            <div className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">Recommendation:</div>
-                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                            <div className="text-xs font-medium text-green-300 mb-2">Recommendation:</div>
+                            <div className="text-sm text-gray-200 leading-relaxed">
                               {recommendation}
                             </div>
                           </div>
                           
                           {marketStandard && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                            <div className="border-t border-gray-700 pt-3">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="text-xs font-medium text-purple-700 dark:text-purple-300">Market Standard:</div>
+                                <div className="text-xs font-medium text-purple-300">Market Standard:</div>
                                 <Badge 
                                   variant={
                                     marketStandard.isStandard === 'Yes' ? 'default' : 
@@ -334,16 +334,16 @@ export function WordLikeEditor({ documentText, comments }: WordLikeEditorProps) 
                                   } 
                                   className={`text-xs font-medium px-2 py-1 ${
                                     marketStandard.isStandard === 'Yes' 
-                                      ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700' 
+                                      ? 'bg-green-900 text-green-200 border-green-700' 
                                       : marketStandard.isStandard === 'No' 
-                                      ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
-                                      : 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700'
+                                      ? 'bg-red-900 text-red-200 border-red-700'
+                                      : 'bg-yellow-900 text-yellow-200 border-yellow-700'
                                   }`}
                                 >
                                   {marketStandard.isStandard}
                                 </Badge>
                               </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                              <div className="text-xs text-gray-400 leading-relaxed bg-gray-800 p-3 rounded-lg">
                                 {marketStandard.reasoning}
                               </div>
                             </div>
